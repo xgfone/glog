@@ -223,9 +223,13 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 			w.WriteString(t.conf.TextKVPairSep)
 		}
 
-		WriteIntoBuffer(w, ctxs[i])
+		if err = WriteIntoBufferErr(w, ctxs[i]); err != nil {
+			return err
+		}
 		w.WriteString(t.conf.TextKVSep)
-		WriteIntoBuffer(w, ctxs[i+1])
+		if err = WriteIntoBufferErr(w, ctxs[i+1]); err != nil {
+			return err
+		}
 		sep = true
 	}
 
@@ -234,9 +238,13 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 			w.WriteString(t.conf.TextKVPairSep)
 		}
 
-		WriteIntoBuffer(w, args[i])
+		if err = WriteIntoBufferErr(w, args[i]); err != nil {
+			return err
+		}
 		w.WriteString(t.conf.TextKVSep)
-		WriteIntoBuffer(w, args[i+1])
+		if err = WriteIntoBufferErr(w, args[i+1]); err != nil {
+			return err
+		}
 		sep = true
 	}
 
@@ -314,7 +322,9 @@ func (f fmtTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) erro
 
 		for _, v := range ctxs {
 			w.WriteByte('[')
-			WriteIntoBuffer(w, v)
+			if err = WriteIntoBufferErr(w, v); err != nil {
+				return err
+			}
 			w.WriteByte(']')
 		}
 

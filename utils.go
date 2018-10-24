@@ -106,3 +106,31 @@ func WriteIntoBuffer(w *bytes.Buffer, i interface{}) {
 		w.WriteString(fmt.Sprintf("%+v", v))
 	}
 }
+
+// WriteIntoBufferErr is the version returning error of WriterIntoBuffer.
+func WriteIntoBufferErr(w *bytes.Buffer, i interface{}) error {
+	if f, ok := i.(Valuer); ok {
+		v, err := f()
+		if err != nil {
+			return err
+		}
+		WriteIntoBuffer(w, v)
+	} else {
+		WriteIntoBuffer(w, i)
+	}
+	return nil
+}
+
+// WriteIntoBytesErr is the version returning error of WriterIntoBytes.
+func WriteIntoBytesErr(bs []byte, i interface{}) ([]byte, error) {
+	if f, ok := i.(Valuer); ok {
+		v, err := f()
+		if err != nil {
+			return bs, err
+		}
+		bs = WriteIntoBytes(bs, v)
+	} else {
+		bs = WriteIntoBytes(bs, i)
+	}
+	return bs, nil
+}
