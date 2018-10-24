@@ -23,3 +23,15 @@ func ExampleFmtTextEncoder() {
 	// Output:
 	// INFO [kv][text][example] :=>: test value1 value2
 }
+
+func ExampleLevelFilterWriter() {
+	logger1 := New(KvTextEncoder(os.Stdout))
+	logger1.Info("will output")
+
+	writer := LevelFilterWriter(ERROR, os.Stdout)
+	logger2 := New(KvTextEncoder(writer))
+	logger2.Info("won't output")
+
+	// Output:
+	// will output
+}

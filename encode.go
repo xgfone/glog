@@ -63,14 +63,14 @@ func FilterEncoder(f func(Level, string, []interface{}, []interface{}) bool,
 	})
 }
 
-// LevelFilterWriter returns a Hook that only writes records which are
+// LevelFilterEncoder returns an encoder that only writes records which are
 // greater than the given verbosity level to the wrapped Handler.
 //
 // For example, to only output Error/PANIC/FATAL logs:
 //
-//     log.LevelFilterHook(log.Error, log.StdoutHandler)
+//     miss.LevelFilterEncoder(miss.ERROR, miss.KvTextEncoder(os.Stdout))
 //
-func LevelFilterWriter(level Level, encoder Encoder) Encoder {
+func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
 	return FilterEncoder(func(l Level, m string, args, ctxs []interface{}) bool {
 		return l >= level
 	}, encoder)

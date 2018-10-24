@@ -1,6 +1,7 @@
 package miss
 
 import (
+	"errors"
 	"io"
 	"net"
 	"os"
@@ -31,6 +32,31 @@ func (w writerFunc) Write(p []byte) (int, error) {
 // WriterFunc converts a function to io.Writer.
 func WriterFunc(f func([]byte) (int, error)) io.Writer {
 	return writerFunc(f)
+}
+
+type levelWriterFunc func(Level, []byte) (int, error)
+
+func (l levelWriterFunc) Write(p []byte) (n int, err error) {
+	return 0, errors.New("only support WriteLevel")
+}
+
+func (l levelWriterFunc) WriteLevel(lvl Level, p []byte) (n int, err error) {
+	return l(lvl, p)
+}
+
+// LevelWriterFunc converts a function to LevelWriter.
+func LevelWriterFunc(f func(Level, []byte) (int, error)) LevelWriter {
+	return levelWriterFunc(f)
+}
+
+// LevelFilterWriter filters the logs whose level is less than lvl.
+func LevelFilterWriter(lvl Level, w io.Writer) LevelWriter {
+	return LevelWriterFunc(func(l Level, p []byte) (int, error) {
+		if l < lvl {
+			return 0, nil
+		}
+		return w.Write(p)
+	})
 }
 
 // DiscardWriter returns a writer which will discard all input.
