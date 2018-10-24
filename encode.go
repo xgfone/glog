@@ -96,6 +96,9 @@ type EncoderConfig struct {
 	// The default is time.RFC3339Nano.
 	TimeLayout string
 
+	// If true, the time uses UTC.
+	IsTimeUTC bool
+
 	// If ture, the encoder will encode the current time.
 	IsTime bool
 
@@ -203,7 +206,11 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 		var _bs [64]byte
 		w.WriteByte('t')
 		w.WriteString(t.conf.TextKVSep)
-		w.Write(time.Now().AppendFormat(_bs[:0], t.conf.TimeLayout))
+		now := time.Now()
+		if t.conf.IsTimeUTC {
+			now = now.UTC()
+		}
+		w.Write(now.AppendFormat(_bs[:0], t.conf.TimeLayout))
 		sep = true
 	}
 
@@ -302,7 +309,11 @@ func (f fmtTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) erro
 
 	if f.conf.IsTime {
 		var _bs [64]byte
-		w.Write(time.Now().AppendFormat(_bs[:0], f.conf.TimeLayout))
+		now := time.Now()
+		if f.conf.IsTimeUTC {
+			now = now.UTC()
+		}
+		w.Write(now.AppendFormat(_bs[:0], f.conf.TimeLayout))
 		sep = true
 	}
 
