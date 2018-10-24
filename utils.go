@@ -11,8 +11,7 @@ import (
 // then writes it into bs and returns bs.
 //
 // For the time.Time, it uses time.RFC3339Nano to format it.
-func WriteIntoBytes(bs []byte, i interface{}) ([]byte, error) {
-	var err error
+func WriteIntoBytes(bs []byte, i interface{}) []byte {
 	switch v := i.(type) {
 	case nil:
 		bs = append(bs, "nil"...)
@@ -56,7 +55,7 @@ func WriteIntoBytes(bs []byte, i interface{}) ([]byte, error) {
 	default:
 		bs = append(bs, fmt.Sprintf("%+v", v)...)
 	}
-	return bs, err
+	return bs
 }
 
 // WriteIntoBuffer encodes a value to byte.Buffer,

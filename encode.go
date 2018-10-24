@@ -223,13 +223,9 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 			bs = append(bs, t.conf.TextKVPairSep...)
 		}
 
-		if bs, err = WriteIntoBytes(bs, ctxs[i]); err != nil {
-			return err
-		}
+		bs = WriteIntoBytes(bs, ctxs[i])
 		bs = append(bs, t.conf.TextKVSep...)
-		if bs, err = WriteIntoBytes(bs, ctxs[i+1]); err != nil {
-			return err
-		}
+		bs = WriteIntoBytes(bs, ctxs[i+1])
 
 		sep = true
 	}
@@ -239,13 +235,9 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 			bs = append(bs, t.conf.TextKVPairSep...)
 		}
 
-		if bs, err = WriteIntoBytes(bs, args[i]); err != nil {
-			return err
-		}
+		bs = WriteIntoBytes(bs, args[i])
 		bs = append(bs, t.conf.TextKVSep...)
-		if bs, err = WriteIntoBytes(bs, args[i+1]); err != nil {
-			return err
-		}
+		bs = WriteIntoBytes(bs, args[i+1])
 
 		sep = true
 	}
@@ -324,9 +316,7 @@ func (f fmtTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) erro
 
 		for _, v := range ctxs {
 			bs = append(bs, '[')
-			if bs, err = WriteIntoBytes(bs, v); err != nil {
-				return err
-			}
+			bs = WriteIntoBytes(bs, v)
 			bs = append(bs, ']')
 		}
 
