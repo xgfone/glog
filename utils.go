@@ -1,6 +1,7 @@
 package miss
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"time"
@@ -56,4 +57,53 @@ func WriteIntoBytes(bs []byte, i interface{}) ([]byte, error) {
 		bs = append(bs, fmt.Sprintf("%+v", v)...)
 	}
 	return bs, err
+}
+
+// WriteIntoBuffer encodes a value to byte.Buffer,
+//
+// For the time.Time, it uses time.RFC3339Nano to format it.
+func WriteIntoBuffer(w *bytes.Buffer, i interface{}) {
+	switch v := i.(type) {
+	case nil:
+		w.WriteString("nil")
+	case []byte:
+		w.Write(v)
+	case string:
+		w.WriteString(v)
+	case bool:
+		w.WriteString(strconv.FormatBool(v))
+	case float32:
+		w.WriteString(strconv.FormatFloat(float64(v), 'f', 3, 64))
+	case float64:
+		w.WriteString(strconv.FormatFloat(v, 'f', 3, 64))
+	case int64:
+		w.WriteString(strconv.FormatInt(v, 10))
+	case int:
+		w.WriteString(strconv.FormatInt(int64(v), 10))
+	case int8:
+		w.WriteString(strconv.FormatInt(int64(v), 10))
+	case int16:
+		w.WriteString(strconv.FormatInt(int64(v), 10))
+	case int32:
+		w.WriteString(strconv.FormatInt(int64(v), 10))
+	case uint64:
+		w.WriteString(strconv.FormatUint(v, 10))
+	case uint:
+		w.WriteString(strconv.FormatUint(uint64(v), 10))
+	case uint8:
+		w.WriteString(strconv.FormatUint(uint64(v), 10))
+	case uint16:
+		w.WriteString(strconv.FormatUint(uint64(v), 10))
+	case uint32:
+		w.WriteString(strconv.FormatUint(uint64(v), 10))
+	case time.Time:
+		var _bs [64]byte
+		w.Write(v.AppendFormat(_bs[:0], time.RFC3339Nano))
+	case error:
+		w.WriteString(v.Error())
+	case fmt.Stringer:
+		w.WriteString(v.String())
+	default:
+		w.WriteString(fmt.Sprintf("%+v", v))
+	}
 }
