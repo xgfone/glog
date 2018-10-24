@@ -5,16 +5,23 @@ import (
 	"sync"
 )
 
+// Some default global pools.
 var (
-	bytesPools = NewBytesPool()
+	DefaultBytesPools  = NewBytesPool()
+	DefaultBufferPools = NewBufferPool()
 )
 
 func init() {
 	initlen := 4
 
+	// for i := 0; i < initlen; i++ {
+	// 	bs := DefaultBytesPools.Get()
+	// 	defer DefaultBytesPools.Put(bs)
+	// }
+
 	for i := 0; i < initlen; i++ {
-		bs := bytesPools.Get()
-		defer bytesPools.Put(bs)
+		b := DefaultBufferPools.Get()
+		defer DefaultBufferPools.Put(b)
 	}
 }
 

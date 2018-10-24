@@ -196,65 +196,63 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 
 	var err error
 	var sep bool
-	bs := bytesPools.Get()
-	defer bytesPools.Put(bs)
+	w := DefaultBufferPools.Get()
+	defer DefaultBufferPools.Put(w)
 
 	if t.conf.IsTime {
 		var _bs [64]byte
-		bs = append(bs, 't')
-		bs = append(bs, t.conf.TextKVSep...)
-		bs = append(bs, time.Now().AppendFormat(_bs[:0], t.conf.TimeLayout)...)
+		w.WriteByte('t')
+		w.WriteString(t.conf.TextKVSep)
+		w.Write(time.Now().AppendFormat(_bs[:0], t.conf.TimeLayout))
 		sep = true
 	}
 
 	if t.conf.IsLevel {
 		if sep {
-			bs = append(bs, t.conf.TextKVPairSep...)
+			w.WriteString(t.conf.TextKVPairSep)
 		}
 
-		bs = append(bs, t.conf.LevelKey...)
-		bs = append(bs, t.conf.TextKVSep...)
-		bs = append(bs, l.Bytes()...)
+		w.WriteString(t.conf.LevelKey)
+		w.WriteString(t.conf.TextKVSep)
+		w.Write(l.Bytes())
 		sep = true
 	}
 
 	for i := 0; i < ctxlen; i += 2 {
 		if sep {
-			bs = append(bs, t.conf.TextKVPairSep...)
+			w.WriteString(t.conf.TextKVPairSep)
 		}
 
-		bs = WriteIntoBytes(bs, ctxs[i])
-		bs = append(bs, t.conf.TextKVSep...)
-		bs = WriteIntoBytes(bs, ctxs[i+1])
-
+		WriteIntoBuffer(w, ctxs[i])
+		w.WriteString(t.conf.TextKVSep)
+		WriteIntoBuffer(w, ctxs[i+1])
 		sep = true
 	}
 
 	for i := 0; i < arglen; i += 2 {
 		if sep {
-			bs = append(bs, t.conf.TextKVPairSep...)
+			w.WriteString(t.conf.TextKVPairSep)
 		}
 
-		bs = WriteIntoBytes(bs, args[i])
-		bs = append(bs, t.conf.TextKVSep...)
-		bs = WriteIntoBytes(bs, args[i+1])
-
+		WriteIntoBuffer(w, args[i])
+		w.WriteString(t.conf.TextKVSep)
+		WriteIntoBuffer(w, args[i+1])
 		sep = true
 	}
 
 	if sep {
-		bs = append(bs, t.conf.TextKVPairSep...)
+		w.WriteString(t.conf.TextKVPairSep)
 	}
 
-	bs = append(bs, t.conf.MsgKey...)
-	bs = append(bs, t.conf.TextKVSep...)
-	bs = append(bs, m...)
+	w.WriteString(t.conf.MsgKey)
+	w.WriteString(t.conf.TextKVPairSep)
+	w.WriteString(m)
 
 	if !t.conf.NotNewLine {
-		bs = append(bs, '\n')
+		w.WriteByte('\n')
 	}
 
-	_, err = MayWriteLevel(t.out, l, bs)
+	_, err = MayWriteLevel(t.out, l, w.Bytes())
 	return err
 }
 
@@ -291,48 +289,48 @@ type fmtTextEncoder struct {
 func (f fmtTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error {
 	var err error
 	var sep bool
-	bs := bytesPools.Get()
-	defer bytesPools.Put(bs)
+	w := DefaultBufferPools.Get()
+	defer DefaultBufferPools.Put(w)
 
 	if f.conf.IsTime {
 		var _bs [64]byte
-		bs = append(bs, time.Now().AppendFormat(_bs[:0], f.conf.TimeLayout)...)
+		w.Write(time.Now().AppendFormat(_bs[:0], f.conf.TimeLayout))
 		sep = true
 	}
 
 	if f.conf.IsLevel {
 		if sep {
-			bs = append(bs, ' ')
+			w.WriteByte(' ')
 		}
-		bs = append(bs, l.Bytes()...)
+		w.Write(l.Bytes())
 		sep = true
 	}
 
 	ctxlen := len(ctxs)
 	if ctxlen > 0 {
 		if sep {
-			bs = append(bs, ' ')
+			w.WriteByte(' ')
 		}
 
 		for _, v := range ctxs {
-			bs = append(bs, '[')
-			bs = WriteIntoBytes(bs, v)
-			bs = append(bs, ']')
+			w.WriteByte('[')
+			WriteIntoBuffer(w, v)
+			w.WriteByte(']')
 		}
 
 		sep = true
 	}
 
 	if sep {
-		bs = append(bs, " :=>: "...)
+		w.WriteString(" :=>: ")
 	}
 
-	bs = append(bs, fmt.Sprintf(m, args...)...)
+	w.WriteString(fmt.Sprintf(m, args...))
 
 	if !f.conf.NotNewLine {
-		bs = append(bs, '\n')
+		w.WriteByte('\n')
 	}
 
-	_, err = MayWriteLevel(f.out, l, bs)
+	_, err = MayWriteLevel(f.out, l, w.Bytes())
 	return err
 }
