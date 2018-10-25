@@ -145,7 +145,7 @@ type EncoderConfig struct {
 
 	// TimeLayout is used to format time.Time.
 	//
-	// The default is time.RFC3339Nano.
+	// The default is time.RFC3339.
 	TimeLayout string
 
 	// If true, the time uses UTC.
@@ -180,7 +180,7 @@ type EncoderConfig struct {
 
 func (ec EncoderConfig) init() EncoderConfig {
 	if ec.TimeLayout == "" {
-		ec.TimeLayout = time.RFC3339Nano
+		ec.TimeLayout = time.RFC3339
 	}
 
 	if ec.Slice == nil {
@@ -402,7 +402,7 @@ func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
 		if argslen%2 != 0 || ctxslen%2 != 0 {
 			return ErrKeyValueNum
 		}
-		_len = _len + argslen/2 + ctxslen/2
+		_len += argslen/2 + ctxslen/2
 		maps := make(map[string]interface{}, _len)
 		maps[c.MsgKey] = m
 
@@ -410,7 +410,11 @@ func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
 			maps[c.LevelKey] = l.String()
 		}
 		if c.IsTime {
-			maps[c.TimeKey] = string(getNowTime(c.TimeLayout, c.IsTimeUTC))
+			now := time.Now()
+			if c.IsTimeUTC {
+				now = now.UTC()
+			}
+			maps[c.TimeKey] = now
 		}
 
 		for i := 0; i < argslen; i += 2 {
