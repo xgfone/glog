@@ -47,7 +47,7 @@ type Encoder interface {
 
 // MultiEncoder uses many encoders to encode the log record.
 //
-// It will return a MultiError if there is a error returned by the encoder
+// It will return a MultiError if there is a error returned by an encoder
 // in the corresponding order. For example,
 //
 //     encoders = ["kvtext", "kvjson"]

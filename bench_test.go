@@ -18,6 +18,20 @@ import (
 	"testing"
 )
 
+func BenchmarkWriteIntoBuffer(b *testing.B) {
+	bufPools := NewBufferPool()
+	bufPools.Put(bufPools.Get())
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			buf := bufPools.Get()
+			WriteIntoBuffer(buf, 123)
+			bufPools.Put(buf)
+		}
+	})
+}
+
 func BenchmarkLoggerNothingEncoderNoArgs(b *testing.B) {
 	logger := New(NothingEncoder())
 
