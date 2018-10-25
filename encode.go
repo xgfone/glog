@@ -45,6 +45,43 @@ type Encoder interface {
 	Encode(level Level, msg string, args []interface{}, ctx []interface{}) error
 }
 
+// MultiEncoder uses many encoders to encode the log record.
+//
+// It will return a MultiError if there is a error returned by the encoder
+// in the corresponding order. For example,
+//
+//     encoders = ["kvtext", "kvjson"]
+//     enc1 := KvTextEncoder(os.Stdout)
+//     enc2 := KvJsonEncoder(os.Stderr)
+//     logger := New(MultiEncoder(enc1, enc2))
+//     err := logger.Info("msg", "key", "value")
+//     if err != nil {
+//         errs := err.(MultiError)
+//         for i, e := range errs {
+//             if e != nil {
+//                 fmt.Printf("%s: %s\n", encoders[i], e.Error())
+//             }
+//         }
+//     }
+func MultiEncoder(encoders ...Encoder) Encoder {
+	return EncoderFunc(func(l Level, m string, a, c []interface{}) error {
+		var hasErr bool
+		errs := make([]error, len(encoders))
+		for i, encoder := range encoders {
+			e := encoder.Encode(l, m, a, c)
+			errs[i] = e
+			if e != nil {
+				hasErr = true
+			}
+		}
+
+		if hasErr {
+			return MultiError{errs}
+		}
+		return nil
+	})
+}
+
 type encoderFunc func(Level, string, []interface{}, []interface{}) error
 
 func (e encoderFunc) Encode(l Level, m string, args, ctx []interface{}) error {

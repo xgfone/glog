@@ -21,6 +21,20 @@ import (
 	"time"
 )
 
+// MultiError represents more than one error.
+type MultiError struct {
+	errs []error
+}
+
+func (m MultiError) Error() string {
+	return ""
+}
+
+// Errors returns a list of errors.
+func (m MultiError) Errors() []error {
+	return m.errs
+}
+
 // WriteIntoBytes encodes a value to []byte,
 // then writes it into bs and returns bs.
 //
