@@ -15,6 +15,7 @@
 package miss
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
@@ -193,6 +194,44 @@ func (ec EncoderConfig) init() EncoderConfig {
 	return ec
 }
 
+func newKvEncoderConfig(conf ...EncoderConfig) EncoderConfig {
+	var c EncoderConfig
+	if len(conf) > 0 {
+		c = conf[0]
+	}
+
+	if c.TimeKey == "" {
+		c.TimeKey = TimeKey
+	}
+	if c.LevelKey == "" {
+		c.LevelKey = LevelKey
+	}
+	if c.MsgKey == "" {
+		c.MsgKey = MsgKey
+	}
+
+	if c.TextKVSep == "" {
+		c.TextKVSep = TextKVSep
+	}
+	if c.TextKVPairSep == "" {
+		c.TextKVPairSep = TextKVPairSep
+	}
+
+	if len(c.Slice) > 0 {
+		c.Slice = append([]interface{}{}, c.Slice...)
+	}
+
+	if len(c.Map) > 0 {
+		maps := make(map[string]interface{}, len(c.Map))
+		for k, v := range c.Map {
+			maps[k] = v
+		}
+		c.Map = maps
+	}
+
+	return c.init()
+}
+
 // KvTextEncoder returns a text encoder based on the key-value pair,
 // which will output the result into out.
 //
@@ -254,14 +293,9 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 	defer DefaultBufferPools.Put(w)
 
 	if t.conf.IsTime {
-		var _bs [64]byte
 		w.WriteByte('t')
 		w.WriteString(t.conf.TextKVSep)
-		now := time.Now()
-		if t.conf.IsTimeUTC {
-			now = now.UTC()
-		}
-		w.Write(now.AppendFormat(_bs[:0], t.conf.TimeLayout))
+		w.Write(getNowTime(t.conf.TimeLayout, t.conf.IsTimeUTC))
 		sep = true
 	}
 
@@ -359,12 +393,7 @@ func (f fmtTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) erro
 	defer DefaultBufferPools.Put(w)
 
 	if f.conf.IsTime {
-		var _bs [64]byte
-		now := time.Now()
-		if f.conf.IsTimeUTC {
-			now = now.UTC()
-		}
-		w.Write(now.AppendFormat(_bs[:0], f.conf.TimeLayout))
+		w.Write(getNowTime(f.conf.TimeLayout, f.conf.IsTimeUTC))
 		sep = true
 	}
 
@@ -405,4 +434,42 @@ func (f fmtTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) erro
 
 	_, err = MayWriteLevel(f.out, l, w.Bytes())
 	return err
+}
+
+// KvStdJSONEncoder returns a new encoder using the standard library, json,
+// to encode the log record.
+func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
+	c := newKvEncoderConfig(conf...)
+
+	return EncoderFunc(func(l Level, m string, args, ctxs []interface{}) error {
+		_len := 3
+		argslen := len(args)
+		ctxslen := len(ctxs)
+		if argslen%2 != 0 || ctxslen%2 != 0 {
+			return ErrKeyValueNum
+		}
+		_len = _len + argslen/2 + ctxslen/2
+		maps := make(map[string]interface{}, _len)
+		maps[c.MsgKey] = m
+
+		if c.IsLevel {
+			maps[c.LevelKey] = l.String()
+		}
+		if c.IsTime {
+			maps[c.TimeKey] = string(getNowTime(c.TimeLayout, c.IsTimeUTC))
+		}
+
+		for i := 0; i < argslen; i += 2 {
+			maps[ToString(args[i])] = args[i+1]
+		}
+		for i := 0; i < ctxslen; i += 2 {
+			maps[ToString(ctxs[i])] = ctxs[i+1]
+		}
+
+		bs, err := json.Marshal(maps)
+		if err == nil {
+			_, err = w.Write(bs)
+		}
+		return err
+	})
 }

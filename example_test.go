@@ -28,6 +28,16 @@ func ExampleKvTextEncoder() {
 	// lvl=INFO name=example id=123 key1=value1 key2=value2 msg=test
 }
 
+func ExampleKvStdJSONEncoder() {
+	conf := EncoderConfig{IsLevel: true}
+	encoder := KvStdJSONEncoder(os.Stdout, conf)
+	log := New(encoder).Cxt("name", "example", "id", 123)
+	log.Info("test", "key1", "value1", "key2", "value2")
+
+	// Output:
+	// {"id":123,"key1":"value1","key2":"value2","lvl":"INFO","msg":"test","name":"example"}
+}
+
 func ExampleFmtTextEncoder() {
 	conf := EncoderConfig{IsLevel: true}
 	encoder := FmtTextEncoder(os.Stdout, conf)
