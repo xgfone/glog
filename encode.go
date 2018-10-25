@@ -145,7 +145,7 @@ type EncoderConfig struct {
 
 	// TimeLayout is used to format time.Time.
 	//
-	// The default is time.RFC3339.
+	// The default is time.RFC3339Nano.
 	TimeLayout string
 
 	// If true, the time uses UTC.
@@ -180,7 +180,7 @@ type EncoderConfig struct {
 
 func (ec EncoderConfig) init() EncoderConfig {
 	if ec.TimeLayout == "" {
-		ec.TimeLayout = time.RFC3339
+		ec.TimeLayout = time.RFC3339Nano
 	}
 
 	if ec.Slice == nil {
@@ -253,7 +253,7 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 		if c.IsTime {
 			w.WriteByte('t')
 			w.WriteString(c.TextKVSep)
-			w.Write(getNowTime(c.TimeLayout, c.IsTimeUTC))
+			w.Write(encodeNowTime(c.TimeLayout, c.IsTimeUTC))
 			sep = true
 		}
 
@@ -273,11 +273,11 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 				w.WriteString(c.TextKVPairSep)
 			}
 
-			if err = WriteIntoBufferErr(w, ctxs[i]); err != nil {
+			if err = WriteIntoBuffer(w, ctxs[i]); err != nil {
 				return err
 			}
 			w.WriteString(c.TextKVSep)
-			if err = WriteIntoBufferErr(w, ctxs[i+1]); err != nil {
+			if err = WriteIntoBuffer(w, ctxs[i+1]); err != nil {
 				return err
 			}
 			sep = true
@@ -288,11 +288,11 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 				w.WriteString(c.TextKVPairSep)
 			}
 
-			if err = WriteIntoBufferErr(w, args[i]); err != nil {
+			if err = WriteIntoBuffer(w, args[i]); err != nil {
 				return err
 			}
 			w.WriteString(c.TextKVSep)
-			if err = WriteIntoBufferErr(w, args[i+1]); err != nil {
+			if err = WriteIntoBuffer(w, args[i+1]); err != nil {
 				return err
 			}
 			sep = true
@@ -320,23 +320,7 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 //
 // Notice: This encoder supports LevelWriter.
 func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
-	var c EncoderConfig
-	if len(conf) > 0 {
-		c = conf[0]
-
-		if len(c.Slice) > 0 {
-			c.Slice = append([]interface{}{}, c.Slice...)
-		}
-
-		if len(c.Map) > 0 {
-			maps := make(map[string]interface{}, len(c.Map))
-			for k, v := range c.Map {
-				maps[k] = v
-			}
-			c.Map = maps
-		}
-	}
-	c = c.init()
+	c := newKvEncoderConfig(conf...)
 
 	return EncoderFunc(func(l Level, m string, args, ctxs []interface{}) error {
 		var err error
@@ -345,7 +329,7 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 		defer DefaultBufferPools.Put(w)
 
 		if c.IsTime {
-			w.Write(getNowTime(c.TimeLayout, c.IsTimeUTC))
+			w.Write(encodeNowTime(c.TimeLayout, c.IsTimeUTC))
 			sep = true
 		}
 
@@ -365,7 +349,7 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 
 			for _, v := range ctxs {
 				w.WriteByte('[')
-				if err = WriteIntoBufferErr(w, v); err != nil {
+				if err = WriteIntoBuffer(w, v); err != nil {
 					return err
 				}
 				w.WriteByte(']')
@@ -387,12 +371,9 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 		_, err = MayWriteLevel(out, l, w.Bytes())
 		return err
 	})
-
 }
 
-// KvStdJSONEncoder returns a new encoder using the standard library, json,
-// to encode the log record.
-func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
+func kvJSONEncoder(std bool, w io.Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
 	return EncoderFunc(func(l Level, m string, args, ctxs []interface{}) error {
@@ -424,10 +405,32 @@ func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
 			maps[ToString(ctxs[i])] = ctxs[i+1]
 		}
 
-		bs, err := json.Marshal(maps)
+		if std {
+			bs, err := json.Marshal(maps)
+			if err == nil {
+				_, err = w.Write(bs)
+			}
+			return err
+		}
+
+		buf := DefaultBufferPools.Get()
+		defer DefaultBufferPools.Put(buf)
+		_, err := MarshalJSON(buf, maps)
 		if err == nil {
-			_, err = w.Write(bs)
+			_, err = w.Write(buf.Bytes())
 		}
 		return err
 	})
+}
+
+// KvStdJSONEncoder returns a new JSON encoder using the standard library,
+// json, to encode the log record.
+func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
+	return kvJSONEncoder(true, w, conf...)
+}
+
+// KvSimpleJSONEncoder returns a new JSON encoder using the funcion MarshalJSON
+// to encode the log record.
+func KvSimpleJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
+	return kvJSONEncoder(false, w, conf...)
 }

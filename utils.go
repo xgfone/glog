@@ -17,13 +17,65 @@ package miss
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 )
 
+var (
+	nilBytes = []byte("nil")
+
+	doubleQuotationByte = []byte{'"'}
+	singleQuotationByte = []byte("'")
+)
+
+// Predefine some errors.
+var (
+	ErrType = fmt.Errorf("not support the type")
+)
+
+// Byter returns a []byte.
+type Byter interface {
+	Bytes() []byte
+}
+
 // MarshalText is an interface to marshal a value to text.
 type MarshalText interface {
 	MarshalText() ([]byte, error)
+}
+
+// StringWriter is a WriteString interface.
+type StringWriter interface {
+	WriteString(string) (int, error)
+}
+
+// WriteString writes s into w.
+func WriteString(w io.Writer, s string, quote ...bool) (n int, err error) {
+	var quotation bool
+	if len(quote) > 0 && quote[0] {
+		quotation = true
+		if n, err = w.Write(doubleQuotationByte); err != nil {
+			return
+		}
+	}
+
+	if ws, ok := w.(StringWriter); ok {
+		if n, err = ws.WriteString(s); err != nil {
+			return
+		}
+	} else {
+		if n, err = w.Write([]byte(s)); err != nil {
+			return
+		}
+	}
+
+	if quotation {
+		if n, err = w.Write(doubleQuotationByte); err != nil {
+			return
+		}
+	}
+
+	return len(s), nil
 }
 
 // MultiError represents more than one error.
@@ -40,116 +92,124 @@ func (m MultiError) Errors() []error {
 	return m.errs
 }
 
-// ToString encodes a value to string,
+// ToBytesErr encodes a value to []byte.
 //
 // For the time.Time, it uses time.RFC3339Nano to format it.
-func ToString(i interface{}) string {
+//
+// Support the types:
+//   nil
+//   bool
+//   []byte
+//   string
+//   float32
+//   float64
+//   int
+//   int8
+//   int16
+//   int32
+//   int64
+//   uint
+//   uint8
+//   uint16
+//   uint32
+//   uint64
+//   time.Time
+//   interface error
+//   interface fmt.Stringer
+//   interface Valuer
+//   interface Byter
+//   interface MarshalText
+//
+// For other types, return the error ErrType.
+func ToBytesErr(i interface{}) ([]byte, error) {
 	switch v := i.(type) {
 	case nil:
-		return "nil"
+		return nilBytes, nil
 	case []byte:
-		return string(v)
+		return v, nil
 	case string:
-		return v
+		return []byte(v), nil
 	case bool:
-		return strconv.FormatBool(v)
+		if v {
+			return TrueBytes, nil
+		}
+		return FalseBytes, nil
 	case float32:
-		return strconv.FormatFloat(float64(v), 'f', 3, 64)
+		return strconv.AppendFloat(make([]byte, 0, 24), float64(v), 'f', -1, 64), nil
 	case float64:
-		return strconv.FormatFloat(v, 'f', 3, 64)
-	case int64:
-		return strconv.FormatInt(v, 10)
+		return strconv.AppendFloat(make([]byte, 0, 24), v, 'f', -1, 64), nil
 	case int:
-		return strconv.FormatInt(int64(v), 10)
+		return strconv.AppendInt(make([]byte, 0, 20), int64(v), 10), nil
 	case int8:
-		return strconv.FormatInt(int64(v), 10)
+		return strconv.AppendInt(make([]byte, 0, 20), int64(v), 10), nil
 	case int16:
-		return strconv.FormatInt(int64(v), 10)
+		return strconv.AppendInt(make([]byte, 0, 20), int64(v), 10), nil
 	case int32:
-		return strconv.FormatInt(int64(v), 10)
-	case uint64:
-		return strconv.FormatUint(v, 10)
+		return strconv.AppendInt(make([]byte, 0, 20), int64(v), 10), nil
+	case int64:
+		return strconv.AppendInt(make([]byte, 0, 20), v, 10), nil
 	case uint:
-		return strconv.FormatUint(uint64(v), 10)
+		return strconv.AppendUint(make([]byte, 0, 20), uint64(v), 10), nil
 	case uint8:
-		return strconv.FormatUint(uint64(v), 10)
+		return strconv.AppendUint(make([]byte, 0, 20), uint64(v), 10), nil
 	case uint16:
-		return strconv.FormatUint(uint64(v), 10)
+		return strconv.AppendUint(make([]byte, 0, 20), uint64(v), 10), nil
 	case uint32:
-		return strconv.FormatUint(uint64(v), 10)
+		return strconv.AppendUint(make([]byte, 0, 20), uint64(v), 10), nil
+	case uint64:
+		return strconv.AppendUint(make([]byte, 0, 20), v, 10), nil
 	case time.Time:
-		var _bs [64]byte
-		return string(v.AppendFormat(_bs[:0], time.RFC3339Nano))
+		return encodeTime(v, time.RFC3339Nano), nil
+	case Valuer:
+		i, err := v()
+		if err != nil {
+			return nil, nil
+		}
+		return ToBytesErr(i)
+	case Byter:
+		return v.Bytes(), nil
 	case MarshalText:
-		b, _ := v.MarshalText()
-		return string(b)
+		return v.MarshalText()
 	case error:
-		return v.Error()
+		return []byte(v.Error()), nil
 	case fmt.Stringer:
-		return v.String()
+		return []byte(v.String()), nil
 	default:
-		return fmt.Sprintf("%+v", v)
+		return nil, ErrType
 	}
 }
 
-// WriteIntoBytes encodes a value to []byte,
-// then writes it into bs and returns bs.
-//
-// For the time.Time, it uses time.RFC3339Nano to format it.
-func WriteIntoBytes(bs []byte, i interface{}) []byte {
-	switch v := i.(type) {
-	case nil:
-		bs = append(bs, "nil"...)
-	case []byte:
-		bs = append(bs, v...)
-	case string:
-		bs = append(bs, v...)
-	case bool:
-		bs = append(bs, strconv.FormatBool(v)...)
-	case float32:
-		bs = append(bs, strconv.FormatFloat(float64(v), 'f', 3, 64)...)
-	case float64:
-		bs = append(bs, strconv.FormatFloat(v, 'f', 3, 64)...)
-	case int64:
-		bs = append(bs, strconv.FormatInt(v, 10)...)
-	case int:
-		bs = append(bs, strconv.FormatInt(int64(v), 10)...)
-	case int8:
-		bs = append(bs, strconv.FormatInt(int64(v), 10)...)
-	case int16:
-		bs = append(bs, strconv.FormatInt(int64(v), 10)...)
-	case int32:
-		bs = append(bs, strconv.FormatInt(int64(v), 10)...)
-	case uint64:
-		bs = append(bs, strconv.FormatUint(v, 10)...)
-	case uint:
-		bs = append(bs, strconv.FormatUint(uint64(v), 10)...)
-	case uint8:
-		bs = append(bs, strconv.FormatUint(uint64(v), 10)...)
-	case uint16:
-		bs = append(bs, strconv.FormatUint(uint64(v), 10)...)
-	case uint32:
-		bs = append(bs, strconv.FormatUint(uint64(v), 10)...)
-	case time.Time:
-		var _bs [64]byte
-		bs = append(bs, v.AppendFormat(_bs[:0], time.RFC3339Nano)...)
-	case MarshalText:
-		b, _ := v.MarshalText()
-		bs = append(bs, b...)
-	case error:
-		bs = append(bs, v.Error()...)
-	case fmt.Stringer:
-		bs = append(bs, v.String()...)
-	default:
-		bs = append(bs, fmt.Sprintf("%+v", v)...)
-	}
+// ToBytes is the same as ToBytesErr, but ignoring the error.
+func ToBytes(i interface{}) []byte {
+	bs, _ := ToBytesErr(i)
 	return bs
 }
 
-// WriteIntoBuffer encodes a value to byte.Buffer,
-//
-// For the time.Time, it uses time.RFC3339Nano to format it.
-func WriteIntoBuffer(w *bytes.Buffer, i interface{}) {
+// ToStringErr is the same as ToBytesErr, but returns string.
+func ToStringErr(i interface{}) (string, error) {
+	switch v := i.(type) {
+	case nil:
+		return "nil", nil
+	case string:
+		return v, nil
+	case error:
+		return v.Error(), nil
+	case fmt.Stringer:
+		return v.String(), nil
+	default:
+		bs, err := ToBytesErr(i)
+		return string(bs), err
+	}
+}
+
+// ToString is the same as ToBytesErr, but returns string and ignores the error.
+func ToString(i interface{}) string {
+	s, _ := ToStringErr(i)
+	return s
+}
+
+// WriteIntoBuffer is the same as ToBytesErr, but writes the result into w.
+func WriteIntoBuffer(w *bytes.Buffer, i interface{}) error {
 	switch v := i.(type) {
 	case nil:
 		w.WriteString("nil")
@@ -157,94 +217,27 @@ func WriteIntoBuffer(w *bytes.Buffer, i interface{}) {
 		w.Write(v)
 	case string:
 		w.WriteString(v)
-	case bool:
-		w.WriteString(strconv.FormatBool(v))
-	case float32:
-		w.WriteString(strconv.FormatFloat(float64(v), 'f', 3, 64))
-	case float64:
-		w.WriteString(strconv.FormatFloat(v, 'f', 3, 64))
-	case int64:
-		w.WriteString(strconv.FormatInt(v, 10))
-	case int:
-		w.WriteString(strconv.FormatInt(int64(v), 10))
-	case int8:
-		w.WriteString(strconv.FormatInt(int64(v), 10))
-	case int16:
-		w.WriteString(strconv.FormatInt(int64(v), 10))
-	case int32:
-		w.WriteString(strconv.FormatInt(int64(v), 10))
-	case uint64:
-		w.WriteString(strconv.FormatUint(v, 10))
-	case uint:
-		w.WriteString(strconv.FormatUint(uint64(v), 10))
-	case uint8:
-		w.WriteString(strconv.FormatUint(uint64(v), 10))
-	case uint16:
-		w.WriteString(strconv.FormatUint(uint64(v), 10))
-	case uint32:
-		w.WriteString(strconv.FormatUint(uint64(v), 10))
-	case time.Time:
-		var _bs [64]byte
-		w.Write(v.AppendFormat(_bs[:0], time.RFC3339Nano))
-	case MarshalText:
-		b, _ := v.MarshalText()
-		w.Write(b)
 	case error:
 		w.WriteString(v.Error())
 	case fmt.Stringer:
 		w.WriteString(v.String())
 	default:
-		w.WriteString(fmt.Sprintf("%+v", v))
-	}
-}
-
-// WriteIntoBufferErr is the version returning error of WriterIntoBuffer.
-func WriteIntoBufferErr(w *bytes.Buffer, i interface{}) error {
-	switch v := i.(type) {
-	case MarshalText:
-		b, err := v.MarshalText()
+		bs, err := ToBytesErr(i)
 		if err != nil {
 			return err
 		}
-		w.Write(b)
-	case Valuer:
-		i, err := v()
-		if err != nil {
-			return err
-		}
-		WriteIntoBuffer(w, i)
-	default:
-		WriteIntoBuffer(w, i)
+		w.Write(bs)
 	}
 	return nil
 }
 
-// WriteIntoBytesErr is the version returning error of WriterIntoBytes.
-func WriteIntoBytesErr(bs []byte, i interface{}) ([]byte, error) {
-	switch v := i.(type) {
-	case MarshalText:
-		b, err := v.MarshalText()
-		if err != nil {
-			return bs, err
-		}
-		bs = append(bs, b...)
-	case Valuer:
-		i, err := v()
-		if err != nil {
-			return bs, err
-		}
-		WriteIntoBytes(bs, i)
-	default:
-		WriteIntoBytes(bs, i)
-	}
-	return bs, nil
+func encodeNowTime(layout string, utc ...bool) []byte {
+	return encodeTime(time.Now(), layout, utc...)
 }
 
-func getNowTime(layout string, utc ...bool) []byte {
-	var _bs [64]byte
-	now := time.Now()
+func encodeTime(t time.Time, layout string, utc ...bool) []byte {
 	if len(utc) > 0 && utc[0] {
-		now = now.UTC()
+		t = t.UTC()
 	}
-	return now.AppendFormat(_bs[:0], layout)
+	return t.AppendFormat(make([]byte, 0, 36), layout)
 }

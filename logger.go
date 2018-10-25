@@ -21,7 +21,7 @@ import (
 
 // Predefine some constants.
 const (
-	DefaultDepth = 5
+	DefaultDepth = 6
 )
 
 // ErrPanic will be used when firing a PANIC level log.
