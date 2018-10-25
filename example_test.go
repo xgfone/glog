@@ -49,11 +49,11 @@ func ExampleFmtTextEncoder() {
 }
 
 func ExampleLevelFilterWriter() {
-	logger1 := New(KvTextEncoder(os.Stdout))
+	logger1 := New(FmtTextEncoder(os.Stdout))
 	logger1.Info("will output")
 
 	writer := LevelFilterWriter(ERROR, os.Stdout)
-	logger2 := New(KvTextEncoder(writer))
+	logger2 := New(FmtTextEncoder(writer))
 	logger2.Info("won't output")
 
 	// Output:

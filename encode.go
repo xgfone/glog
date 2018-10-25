@@ -237,123 +237,82 @@ func newKvEncoderConfig(conf ...EncoderConfig) EncoderConfig {
 //
 // Notice: This encoder supports LevelWriter.
 func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
-	var c EncoderConfig
-
-	if len(conf) > 0 {
-		c = conf[0]
-
-		if c.TimeKey == "" {
-			c.TimeKey = TimeKey
-		}
-		if c.LevelKey == "" {
-			c.LevelKey = LevelKey
-		}
-		if c.MsgKey == "" {
-			c.MsgKey = MsgKey
+	c := newKvEncoderConfig(conf...)
+	return EncoderFunc(func(l Level, m string, args, ctxs []interface{}) error {
+		arglen := len(args)
+		ctxlen := len(ctxs)
+		if arglen%2 != 0 || ctxlen%2 != 0 {
+			return ErrKeyValueNum
 		}
 
-		if c.TextKVSep == "" {
-			c.TextKVSep = TextKVSep
-		}
-		if c.TextKVPairSep == "" {
-			c.TextKVPairSep = TextKVPairSep
+		var err error
+		var sep bool
+		w := DefaultBufferPools.Get()
+		defer DefaultBufferPools.Put(w)
+
+		if c.IsTime {
+			w.WriteByte('t')
+			w.WriteString(c.TextKVSep)
+			w.Write(getNowTime(c.TimeLayout, c.IsTimeUTC))
+			sep = true
 		}
 
-		if len(c.Slice) > 0 {
-			c.Slice = append([]interface{}{}, c.Slice...)
-		}
-
-		if len(c.Map) > 0 {
-			maps := make(map[string]interface{}, len(c.Map))
-			for k, v := range c.Map {
-				maps[k] = v
+		if c.IsLevel {
+			if sep {
+				w.WriteString(c.TextKVPairSep)
 			}
-			c.Map = maps
+
+			w.WriteString(c.LevelKey)
+			w.WriteString(c.TextKVSep)
+			w.Write(l.Bytes())
+			sep = true
 		}
-	}
 
-	return kvTextEncoder{out: out, conf: c.init()}
-}
+		for i := 0; i < ctxlen; i += 2 {
+			if sep {
+				w.WriteString(c.TextKVPairSep)
+			}
 
-type kvTextEncoder struct {
-	out  io.Writer
-	conf EncoderConfig
-}
+			if err = WriteIntoBufferErr(w, ctxs[i]); err != nil {
+				return err
+			}
+			w.WriteString(c.TextKVSep)
+			if err = WriteIntoBufferErr(w, ctxs[i+1]); err != nil {
+				return err
+			}
+			sep = true
+		}
 
-func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error {
-	arglen := len(args)
-	ctxlen := len(ctxs)
-	if arglen%2 != 0 || ctxlen%2 != 0 {
-		return ErrKeyValueNum
-	}
+		for i := 0; i < arglen; i += 2 {
+			if sep {
+				w.WriteString(c.TextKVPairSep)
+			}
 
-	var err error
-	var sep bool
-	w := DefaultBufferPools.Get()
-	defer DefaultBufferPools.Put(w)
+			if err = WriteIntoBufferErr(w, args[i]); err != nil {
+				return err
+			}
+			w.WriteString(c.TextKVSep)
+			if err = WriteIntoBufferErr(w, args[i+1]); err != nil {
+				return err
+			}
+			sep = true
+		}
 
-	if t.conf.IsTime {
-		w.WriteByte('t')
-		w.WriteString(t.conf.TextKVSep)
-		w.Write(getNowTime(t.conf.TimeLayout, t.conf.IsTimeUTC))
-		sep = true
-	}
-
-	if t.conf.IsLevel {
 		if sep {
-			w.WriteString(t.conf.TextKVPairSep)
+			w.WriteString(c.TextKVPairSep)
 		}
 
-		w.WriteString(t.conf.LevelKey)
-		w.WriteString(t.conf.TextKVSep)
-		w.Write(l.Bytes())
-		sep = true
-	}
+		w.WriteString(c.MsgKey)
+		w.WriteString(c.TextKVSep)
+		w.WriteString(m)
 
-	for i := 0; i < ctxlen; i += 2 {
-		if sep {
-			w.WriteString(t.conf.TextKVPairSep)
+		if !c.NotNewLine {
+			w.WriteByte('\n')
 		}
 
-		if err = WriteIntoBufferErr(w, ctxs[i]); err != nil {
-			return err
-		}
-		w.WriteString(t.conf.TextKVSep)
-		if err = WriteIntoBufferErr(w, ctxs[i+1]); err != nil {
-			return err
-		}
-		sep = true
-	}
-
-	for i := 0; i < arglen; i += 2 {
-		if sep {
-			w.WriteString(t.conf.TextKVPairSep)
-		}
-
-		if err = WriteIntoBufferErr(w, args[i]); err != nil {
-			return err
-		}
-		w.WriteString(t.conf.TextKVSep)
-		if err = WriteIntoBufferErr(w, args[i+1]); err != nil {
-			return err
-		}
-		sep = true
-	}
-
-	if sep {
-		w.WriteString(t.conf.TextKVPairSep)
-	}
-
-	w.WriteString(t.conf.MsgKey)
-	w.WriteString(t.conf.TextKVSep)
-	w.WriteString(m)
-
-	if !t.conf.NotNewLine {
-		w.WriteByte('\n')
-	}
-
-	_, err = MayWriteLevel(t.out, l, w.Bytes())
-	return err
+		_, err = MayWriteLevel(out, l, w.Bytes())
+		return err
+	})
 }
 
 // FmtTextEncoder returns a text encoder based on the % formatter,
@@ -377,63 +336,58 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 			c.Map = maps
 		}
 	}
+	c = c.init()
 
-	return fmtTextEncoder{out: out, conf: c.init()}
-}
+	return EncoderFunc(func(l Level, m string, args, ctxs []interface{}) error {
+		var err error
+		var sep bool
+		w := DefaultBufferPools.Get()
+		defer DefaultBufferPools.Put(w)
 
-type fmtTextEncoder struct {
-	out  io.Writer
-	conf EncoderConfig
-}
-
-func (f fmtTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error {
-	var err error
-	var sep bool
-	w := DefaultBufferPools.Get()
-	defer DefaultBufferPools.Put(w)
-
-	if f.conf.IsTime {
-		w.Write(getNowTime(f.conf.TimeLayout, f.conf.IsTimeUTC))
-		sep = true
-	}
-
-	if f.conf.IsLevel {
-		if sep {
-			w.WriteByte(' ')
-		}
-		w.Write(l.Bytes())
-		sep = true
-	}
-
-	ctxlen := len(ctxs)
-	if ctxlen > 0 {
-		if sep {
-			w.WriteByte(' ')
+		if c.IsTime {
+			w.Write(getNowTime(c.TimeLayout, c.IsTimeUTC))
+			sep = true
 		}
 
-		for _, v := range ctxs {
-			w.WriteByte('[')
-			if err = WriteIntoBufferErr(w, v); err != nil {
-				return err
+		if c.IsLevel {
+			if sep {
+				w.WriteByte(' ')
 			}
-			w.WriteByte(']')
+			w.Write(l.Bytes())
+			sep = true
 		}
 
-		sep = true
-	}
+		ctxlen := len(ctxs)
+		if ctxlen > 0 {
+			if sep {
+				w.WriteByte(' ')
+			}
 
-	if sep {
-		w.WriteString(" :=>: ")
-	}
+			for _, v := range ctxs {
+				w.WriteByte('[')
+				if err = WriteIntoBufferErr(w, v); err != nil {
+					return err
+				}
+				w.WriteByte(']')
+			}
 
-	w.WriteString(fmt.Sprintf(m, args...))
+			sep = true
+		}
 
-	if !f.conf.NotNewLine {
-		w.WriteByte('\n')
-	}
+		if sep {
+			w.WriteString(" :=>: ")
+		}
 
-	_, err = MayWriteLevel(f.out, l, w.Bytes())
-	return err
+		w.WriteString(fmt.Sprintf(m, args...))
+
+		if !c.NotNewLine {
+			w.WriteByte('\n')
+		}
+
+		_, err = MayWriteLevel(out, l, w.Bytes())
+		return err
+	})
+
 }
 
 // KvStdJSONEncoder returns a new encoder using the standard library, json,
