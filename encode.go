@@ -274,7 +274,7 @@ func (t kvTextEncoder) Encode(l Level, m string, args, ctxs []interface{}) error
 	}
 
 	w.WriteString(t.conf.MsgKey)
-	w.WriteString(t.conf.TextKVPairSep)
+	w.WriteString(t.conf.TextKVSep)
 	w.WriteString(m)
 
 	if !t.conf.NotNewLine {
