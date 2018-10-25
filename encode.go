@@ -431,6 +431,9 @@ func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
 
 // KvSimpleJSONEncoder returns a new JSON encoder using the funcion MarshalJSON
 // to encode the log record.
+//
+// Except for the type of Array and Slice, it does not use the reflection.
+// So it's faster than the standard library json.
 func KvSimpleJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
 	return kvJSONEncoder(false, w, conf...)
 }
