@@ -116,7 +116,6 @@ func (m MultiError) Errors() []error {
 //   time.Time
 //   interface error
 //   interface fmt.Stringer
-//   interface Valuer
 //   interface Byter
 //   interface MarshalText
 //
@@ -160,12 +159,6 @@ func ToBytesErr(i interface{}) ([]byte, error) {
 		return strconv.AppendUint(make([]byte, 0, 20), v, 10), nil
 	case time.Time:
 		return encodeTime(v, time.RFC3339Nano), nil
-	case Valuer:
-		i, err := v()
-		if err != nil {
-			return nil, nil
-		}
-		return ToBytesErr(i)
 	case Byter:
 		return v.Bytes(), nil
 	case MarshalText:

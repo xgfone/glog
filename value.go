@@ -22,15 +22,21 @@ import (
 
 // A Valuer generates a log value, which represents a dynamic value
 // that is re-evaluated with each log event before firing it.
-//
-// For the caller depth, you maybe use the global variable DefaultDepth,
-// which indicates the caller depth of the default implementation of the Logger.
-type Valuer func() (interface{}, error)
+type Valuer func(depth int, level Level) (interface{}, error)
+
+// MayBeValuer calls it and returns the result if v is Valuer.
+// Or returns v without change.
+func MayBeValuer(depth int, lvl Level, v interface{}) (interface{}, error) {
+	if f, ok := v.(Valuer); ok {
+		return f(depth+1, lvl)
+	}
+	return v, nil
+}
 
 // Caller returns a Valuer that returns a file and line from a specified depth
 // in the callstack. Users will probably want to use DefaultCaller.
-func Caller(depth int) Valuer {
-	return func() (interface{}, error) {
+func Caller() Valuer {
+	return func(depth int, level Level) (interface{}, error) {
 		_, file, line, _ := runtime.Caller(depth + 1)
 		idx := strings.LastIndexByte(file, '/')
 		// using idx+1 below handles both of following cases:
@@ -39,7 +45,3 @@ func Caller(depth int) Valuer {
 		return file[idx+1:] + ":" + strconv.Itoa(line), nil
 	}
 }
-
-// DefaultCaller is a Valuer that returns the file and line where the Log
-// method was invoked. It can only be used with log.With.
-var DefaultCaller = Caller(DefaultDepth)

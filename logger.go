@@ -19,11 +19,6 @@ import (
 	"os"
 )
 
-// Predefine some constants.
-const (
-	DefaultDepth = 6
-)
-
 // ErrPanic will be used when firing a PANIC level log.
 var ErrPanic = fmt.Errorf("the panic level log")
 
@@ -87,7 +82,7 @@ func (l logger) log(level Level, msg string, args []interface{}) (err error) {
 	if level < l.lvl {
 		return nil
 	}
-	err = l.enc.Encode(level, msg, args, l.ctx)
+	err = l.enc.Encode(2, level, msg, args, l.ctx)
 
 	switch level {
 	case PANIC:
