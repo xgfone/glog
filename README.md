@@ -9,6 +9,7 @@ miss is meaning:
 
 It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
 
+See the [DOC](https://godoc.org/github.com/xgfone/miss).
 
 ## Basic Principle
 
@@ -149,11 +150,11 @@ logger.Info("output to stdout and file")
 
 If the type of a certain value is `Valuer`, the default encoder engine will call it and encode the returned result. For example,
 ```go
-logger := miss.New("hello", func() (interface{}, error) { return "world", nil })
+logger := miss.New("hello", func(d int, l Level) (interface{}, error) { return "world", nil })
 ```
 or
 ```go
-logger.Info("hello %v", func() (interface{}, error) { return "world", nil })
+logger.Info("hello %v", func(d int, l Level) (interface{}, error) { return "world", nil })
 ```
 
 
