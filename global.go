@@ -48,7 +48,7 @@ func WithLevel(level Level) Logger {
 
 // WithEncoder returns a new logger with the encoder.
 //
-// Since Encoder is the level type, we use WithEncoder as the function name.
+// Since Encoder is the encoder type, we use WithEncoder as the function name.
 func WithEncoder(encoder Encoder) Logger {
 	return root.Encoder(encoder)
 }
