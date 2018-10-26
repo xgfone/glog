@@ -167,7 +167,7 @@ macOS Mojave
 #### TextNegative
 |  test   | ops | ns/op | bytes/op | allocs/op
 |---------|-----|-------|----------|-----------
-| BenchmarkMissTextNegative-4      | 1000000000  | 7.25 ns/op | 0 B/op   | 0 allocs/op
+| **BenchmarkMissTextNegative-4**      | **1000000000**  | **7.25 ns/op** | **0 B/op**   | **0 allocs/op**
 | BenchmarkGokitTextNegative-4     | 300000000   | 26.8 ns/op | 32 B/op  | 1 allocs/op
 | BenchmarkLog15TextNegative-4     | 10000000    | 723 ns/op  | 368 B/op | 3 allocs/op
 | BenchmarkLogrusTextNegative-4    | 10000000000 | 1.93 ns/op | 0 B/op   | 0 allocs/op
@@ -179,7 +179,7 @@ macOS Mojave
 #### TextPositive
 |  test   | ops | ns/op | bytes/op | allocs/op
 |---------|-----|-------|----------|-----------
-| BenchmarkMissTextPositive-4      | 20000000 | 372 ns/op  | 48 B/op  | 1 allocs/op
+| **BenchmarkMissTextPositive-4**      | **20000000** | **372 ns/op**  | **48 B/op**  | **1 allocs/op**
 | BenchmarkLog15TextPositive-4     | 1000000  | 5125 ns/op | 856 B/op | 14 allocs/op
 | BenchmarkGokitTextPositive-4     | 10000000 | 846 ns/op  | 256 B/op | 4 allocs/op
 | BenchmarkSeelogTextPositive-4    | 2000000  | 3313 ns/op | 440 B/op | 11 allocs/op
@@ -191,7 +191,7 @@ macOS Mojave
 #### JSONNegative
 |  test   | ops | ns/op | bytes/op | allocs/op
 |---------|-----|-------|----------|-----------
-| BenchmarkMissJSONNegative-4    | 200000000  | 41.9 ns/op | 96 B/op  | 1 allocs/op
+| **BenchmarkMissJSONNegative-4**    | **200000000**  | **41.9 ns/op** | **96 B/op**  | **1 allocs/op**
 | BenchmarkLog15JSONNegative-4   | 10000000   | 813 ns/op  | 560 B/op | 5 allocs/op
 | BenchmarkGokitJSONNegative-4   | 200000000  | 45.0 ns/op | 128 B/op | 1 allocs/op
 | BenchmarkLogrusJSONNegative-4  | 20000000   | 367 ns/op  | 480 B/op | 4 allocs/op
@@ -201,7 +201,7 @@ macOS Mojave
 #### JSONPositive
 |  test   | ops | ns/op | bytes/op | allocs/op
 |---------|-----|-------|----------|-----------
-| BenchmarkMissJSONPositive-4    | 10000000 | 1181 ns/op  | 640 B/op  | 10 allocs/op
+| **BenchmarkMissJSONPositive-4**    | **10000000** | **1181 ns/op**  | **640 B/op**  | **10 allocs/op**
 | BenchmarkLog15JSONPositive-4   | 500000   | 11108 ns/op | 2256 B/op | 32 allocs/op
 | BenchmarkGokitJSONPositive-4   | 3000000  | 2726 ns/op  | 1552 B/op | 24 allocs/op
 | BenchmarkLogrusJSONPositive-4  | 1000000  | 9273 ns/op  | 1843 B/op | 30 allocs/op
