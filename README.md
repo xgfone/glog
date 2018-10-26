@@ -132,6 +132,19 @@ All implementing the interface `io.Writer` are a Writer.
 There are some the built-in writers in the core package, such as `DiscardWriter`, `NetWriter`, `FileWriter`, `MultiWriter`, `FailoverWriter`, `SafeWriter`, `ChannelWriter`, `BufferedWriter`, `LevelFilterWriter`, `SyslogWriter`, `SyslogNetWriter` and `Must`.
 
 
+#### MultiWriter
+
+For an encoder, you can output the result to more than one destination by using `MultiWriter`. For example, output the log to STDOUT and the file:
+
+```go
+writer := miss.MultiWriter(os.Stdout, miss.FileWriter("/path/to/file"))
+encoder := miss.KvTextEncoder(writer)
+logger := miss.New(encoder)
+
+logger.Info("output to stdout and file")
+```
+
+
 ### Lazy evaluation
 
 If the type of a certain value is `Valuer`, the default encoder engine will call it and encode the returned result. For example,
