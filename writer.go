@@ -206,6 +206,8 @@ func (m muster) NetWriter(network, addr string) (io.Writer, io.Closer) {
 
 // SizedRotatingFileWriter returns a new file writer with rotating
 // based on the size of the file.
+//
+// It is thread-safe for concurrent writes.
 func SizedRotatingFileWriter(filename string, size, count int, mode ...os.FileMode) io.WriteCloser {
 	var _mode os.FileMode = 0644
 	if len(mode) > 0 && mode[0] > 0 {
