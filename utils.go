@@ -241,3 +241,29 @@ func encodeTime(t time.Time, layout string, utc ...bool) []byte {
 	}
 	return t.AppendFormat(make([]byte, 0, 36), layout)
 }
+
+// Range returns a integer range between start and stop, which progressively
+// increase or descrease by step.
+//
+// If step is positive, r[i] = start + step*i when i>0 and r[i]<stop.
+//
+// If step is negative, r[i] = start + step*i but when i>0 and r[i]>stop.
+//
+// If step is 0, it will panic.
+func Range(start, stop, step int) (r []int) {
+	if step > 0 {
+		for start < stop {
+			r = append(r, start)
+			start += step
+		}
+		return
+	} else if step < 0 {
+		for start > stop {
+			r = append(r, start)
+			start += step
+		}
+		return
+	}
+
+	panic(fmt.Errorf("The step must not be 0"))
+}

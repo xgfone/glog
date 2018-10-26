@@ -16,11 +16,14 @@ package miss
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
 	"sync"
 )
+
+var fileFlag = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 
 // LevelWriter supports not only io.Writer but also WriteLevel.
 type LevelWriter interface {
@@ -102,7 +105,7 @@ func FileWriter(path string, mode ...os.FileMode) (io.Writer, io.Closer, error) 
 		_mode = mode[0]
 	}
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, _mode)
+	f, err := os.OpenFile(path, fileFlag, _mode)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -199,4 +202,150 @@ func (m muster) FileWriter(path string, mode ...os.FileMode) (io.Writer, io.Clos
 
 func (m muster) NetWriter(network, addr string) (io.Writer, io.Closer) {
 	return must(NetWriter(network, addr))
+}
+
+// SizedRotatingFileWriter returns a new file writer with rotating
+// based on the size of the file.
+func SizedRotatingFileWriter(filename string, size, count int, mode ...os.FileMode) io.WriteCloser {
+	var _mode os.FileMode = 0644
+	if len(mode) > 0 && mode[0] > 0 {
+		_mode = mode[0]
+	}
+
+	w := sizedRotatingFile{
+		filename:    filename,
+		filePerm:    _mode,
+		maxSize:     size,
+		backupCount: count,
+	}
+
+	if err := w.open(); err != nil {
+		panic(err)
+	}
+	return &w
+}
+
+// sizedRotatingFile is a rotating logging handler based on the size.
+type sizedRotatingFile struct {
+	sync.Mutex
+	file *os.File
+
+	filePerm    os.FileMode
+	filename    string
+	maxSize     int
+	backupCount int
+	nbytes      int
+}
+
+func (f *sizedRotatingFile) Close() (err error) {
+	f.Lock()
+	err = f.close()
+	f.Unlock()
+	return
+}
+
+func (f *sizedRotatingFile) Write(data []byte) (n int, err error) {
+	f.Lock()
+	defer f.Lock()
+
+	if f.file == nil {
+		return 0, errors.New("the file has been closed")
+	}
+
+	if f.nbytes+len(data) > f.maxSize {
+		if err = f.doRollover(); err != nil {
+			return
+		}
+	}
+
+	if n, err = f.Write(data); err != nil {
+		return
+	}
+
+	f.nbytes += n
+	return
+}
+
+func (f *sizedRotatingFile) open() (err error) {
+	file, err := os.OpenFile(f.filename, fileFlag, f.filePerm)
+	if err != nil {
+		return
+	}
+
+	info, err := file.Stat()
+	if err != nil {
+		return
+	}
+
+	f.nbytes = int(info.Size())
+	f.file = file
+	return
+}
+
+func (f *sizedRotatingFile) close() (err error) {
+	err = f.file.Close()
+	f.file = nil
+	return
+}
+
+func (f *sizedRotatingFile) doRollover() (err error) {
+	if f.backupCount > 0 {
+		if err = f.close(); err != nil {
+			return fmt.Errorf("Rotating: close failed: %s", err)
+		}
+
+		if !fileIsExist(f.filename) {
+			return nil
+		} else if n, err := fileSize(f.filename); err != nil {
+			return fmt.Errorf("Rotating: failed to get the size: %s", err)
+		} else if n == 0 {
+			return nil
+		}
+
+		for _, i := range Range(f.backupCount-1, 0, -1) {
+			sfn := fmt.Sprintf("%s.%d", f.filename, i)
+			dfn := fmt.Sprintf("%s.%d", f.filename, i+1)
+			if fileIsExist(sfn) {
+				if fileIsExist(dfn) {
+					os.Remove(dfn)
+				}
+				if err = os.Rename(sfn, dfn); err != nil {
+					return fmt.Errorf("Rotating: failed to rename %s -> %s: %s",
+						sfn, dfn, err)
+				}
+			}
+		}
+		dfn := f.filename + ".1"
+		if fileIsExist(dfn) {
+			if err = os.Remove(dfn); err != nil {
+				return fmt.Errorf("Rotating: failed to remove %s: %s", dfn, err)
+			}
+		}
+		if fileIsExist(f.filename) {
+			if err = os.Rename(f.filename, dfn); err != nil {
+				return fmt.Errorf("Rotating: failed to rename %s -> %s: %s",
+					f.filename, dfn, err)
+			}
+		}
+		err = f.open()
+	}
+	return
+}
+
+func fileIsExist(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+// fileSize returns the size of the file as how many bytes.
+func fileSize(fp string) (int64, error) {
+	f, e := os.Stat(fp)
+	if e != nil {
+		return 0, e
+	}
+	return f.Size(), nil
 }
