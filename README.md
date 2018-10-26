@@ -129,7 +129,7 @@ if err := logger.Error("output to stdout & stderr); err != nil {
 
 All implementing the interface `io.Writer` are a Writer.
 
-There are some the built-in writers in the core package, such as `DiscardWriter`, `NetWriter`, `FileWriter`, `MultiWriter`, `FailoverWriter`, `SafeWriter`, `ChannelWriter`, `BufferedWriter`, `LevelFilterWriter`, `SyslogWriter`, `SyslogNetWriter` and `Must`.
+There are some the built-in writers in the core package, such as `DiscardWriter`, `NetWriter`, `FileWriter`, `MultiWriter`, `FailoverWriter`, `SafeWriter`, `ChannelWriter`, `BufferedWriter`, `LevelFilterWriter`, `SyslogWriter`, `SyslogNetWriter`, `SizedRotatingFileWriter` and `Must`.
 
 
 #### MultiWriter

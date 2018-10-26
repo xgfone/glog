@@ -208,7 +208,11 @@ func (m muster) NetWriter(network, addr string) (io.Writer, io.Closer) {
 // based on the size of the file.
 //
 // It is thread-safe for concurrent writes.
-func SizedRotatingFileWriter(filename string, size, count int, mode ...os.FileMode) io.WriteCloser {
+//
+// The default permission of the log file is 0644.
+func SizedRotatingFileWriter(filename string, size, count int,
+	mode ...os.FileMode) io.WriteCloser {
+
 	var _mode os.FileMode = 0644
 	if len(mode) > 0 && mode[0] > 0 {
 		_mode = mode[0]
