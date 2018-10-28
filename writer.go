@@ -113,6 +113,45 @@ func FileWriter(path string, mode ...os.FileMode) (io.Writer, io.Closer, error) 
 	return SafeWriter(f), f, nil
 }
 
+// ReopenWriter returns a writer that can be closed then re-opened,
+// which is used for logrotate typically.
+//
+// Notice: it used SafeWriter to wrap the writer, so it's thread-safe.
+func ReopenWriter(factory func() (w io.WriteCloser, reopen <-chan bool, err error)) (io.Writer, error) {
+	w, reopen, err := factory()
+	if err != nil {
+		return nil, err
+	}
+
+	close := func() (int, error) {
+		if w != nil {
+			w.Close()
+		}
+		w = nil
+		reopen = nil
+		return 0, err
+	}
+
+	writer := WriterFunc(func(p []byte) (int, error) {
+		if reopen == nil {
+			if w, reopen, err = factory(); err != nil {
+				return close()
+			}
+		}
+
+		select {
+		case <-reopen:
+			w.Close()
+			if w, reopen, err = factory(); err != nil {
+				return close()
+			}
+		default:
+		}
+		return w.Write(p)
+	})
+	return SafeWriter(writer), nil
+}
+
 // MultiWriter writes one data to more than one destination.
 func MultiWriter(outs ...io.Writer) io.Writer {
 	return WriterFunc(func(p []byte) (n int, err error) {
