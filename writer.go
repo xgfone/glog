@@ -292,7 +292,7 @@ func (f *sizedRotatingFile) Close() (err error) {
 
 func (f *sizedRotatingFile) Write(data []byte) (n int, err error) {
 	f.Lock()
-	defer f.Lock()
+	defer f.Unlock()
 
 	if f.file == nil {
 		return 0, errors.New("the file has been closed")
@@ -304,7 +304,7 @@ func (f *sizedRotatingFile) Write(data []byte) (n int, err error) {
 		}
 	}
 
-	if n, err = f.Write(data); err != nil {
+	if n, err = f.file.Write(data); err != nil {
 		return
 	}
 
