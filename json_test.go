@@ -29,7 +29,7 @@ func ExampleMarshalJSON() {
 	buf.WriteByte('\n')
 	MarshalJSON(buf, "123")
 	buf.WriteByte('\n')
-	MarshalJSON(buf, time.Now())
+	MarshalJSON(buf, time.Time{})
 	buf.WriteByte('\n')
 	MarshalJSON(buf, []int{1, 2, 3})
 	buf.WriteByte('\n')
@@ -40,8 +40,15 @@ func ExampleMarshalJSON() {
 	MarshalJSON(buf, map[string]interface{}{"number": 123, "name": "abc"})
 	buf.WriteByte('\n')
 
-	fmt.Printf("%s\n", buf.String())
+	fmt.Printf("%s", buf.String())
 
 	// Output:
-	//
+	// 123
+	// 1.23
+	// "123"
+	// "0001-01-01T00:00:00Z"
+	// [1,2,3]
+	// ["a","b","c"]
+	// [1.2,1.4,1.6]
+	// {"number":123,"name":"abc"}
 }

@@ -79,6 +79,8 @@ func newLogger(l logger) logger {
 		enc: l.enc,
 		ctx: l.ctx,
 		lvl: l.lvl,
+
+		depth: l.depth,
 	}
 }
 

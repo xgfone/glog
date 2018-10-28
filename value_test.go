@@ -17,9 +17,9 @@ package miss
 import "os"
 
 func ExampleCaller() {
-	logger := New(KvTextEncoder(os.Stdout))
-	logger.Info("msg", "caller", Caller())
+	logger := New(KvTextEncoder(os.Stdout)).Cxt("caller1", Caller())
+	logger.Info("msg", "caller2", Caller())
 
 	// Output:
-	// caller=value_test.go:21 msg=msg
+	// caller1=value_test.go:21 caller2=value_test.go:21 msg=msg
 }

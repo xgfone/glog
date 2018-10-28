@@ -88,7 +88,7 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 			}
 
 			// Write key
-			if n, err = WriteString(w, key); err != nil {
+			if n, err = WriteString(w, key, true); err != nil {
 				return total, err
 			}
 			total += n
