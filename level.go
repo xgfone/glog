@@ -14,6 +14,11 @@
 
 package miss
 
+import (
+	"fmt"
+	"strings"
+)
+
 const (
 	traceNameS = "TRACE"
 	debugNameS = "DEBUG"
@@ -93,5 +98,31 @@ func (l Level) Bytes() []byte {
 		return fatalNameB
 	default:
 		return unknownNameB
+	}
+}
+
+// NameToLevel returns the Level by the name, which is case Insensitive.
+//
+// If the name is unknown, it will panic.
+//
+// Notice: WARNING is the alias of WARN.
+func NameToLevel(name string) Level {
+	switch strings.ToUpper(name) {
+	case traceNameS:
+		return TRACE
+	case debugNameS:
+		return DEBUG
+	case infoNameS:
+		return INFO
+	case warnNameS, "WARNING":
+		return WARN
+	case errorNameS:
+		return ERROR
+	case panicNameS:
+		return PANIC
+	case fatalNameS:
+		return FATAL
+	default:
+		panic(fmt.Errorf("unknown level name '%s'", name))
 	}
 }
