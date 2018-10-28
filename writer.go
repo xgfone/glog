@@ -211,7 +211,7 @@ func (m muster) NetWriter(network, addr string) (io.Writer, io.Closer) {
 //
 // The default permission of the log file is 0644.
 func SizedRotatingFileWriter(filename string, size, count int,
-	mode ...os.FileMode) io.WriteCloser {
+	mode ...os.FileMode) (io.WriteCloser, error) {
 
 	var _mode os.FileMode = 0644
 	if len(mode) > 0 && mode[0] > 0 {
@@ -226,9 +226,9 @@ func SizedRotatingFileWriter(filename string, size, count int,
 	}
 
 	if err := w.open(); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &w
+	return &w, nil
 }
 
 // sizedRotatingFile is a rotating logging handler based on the size.
