@@ -34,14 +34,19 @@ func MayBeValuer(depth int, lvl Level, v interface{}) (interface{}, error) {
 }
 
 // Caller returns a Valuer that returns a file and line from a specified depth
-// in the callstack. Users will probably want to use DefaultCaller.
-func Caller() Valuer {
+// in the callstack.
+//
+// If fullPath is true, it will return the full path of the file.
+func Caller(fullPath ...bool) Valuer {
 	return func(depth int, level Level) (interface{}, error) {
 		_, file, line, _ := runtime.Caller(depth + 1)
-		idx := strings.LastIndexByte(file, '/')
-		// using idx+1 below handles both of following cases:
-		// idx == -1 because no "/" was found, or
-		// idx >= 0 and we want to start at the character after the found "/".
-		return file[idx+1:] + ":" + strconv.Itoa(line), nil
+		if len(fullPath) == 0 || !fullPath[0] {
+			idx := strings.LastIndexByte(file, '/')
+			// using idx+1 below handles both of following cases:
+			// idx == -1 because no "/" was found, or
+			// idx >= 0 and we want to start at the character after the found "/".
+			file = file[idx+1:]
+		}
+		return file + ":" + strconv.Itoa(line), nil
 	}
 }
