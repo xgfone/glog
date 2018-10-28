@@ -32,7 +32,8 @@ type LevelWriter interface {
 	WriteLevel(level Level, bs []byte) (n int, err error)
 }
 
-// MayWriteLevel try
+// MayWriteLevel firstly tries to call the method WriteLevel to write the data.
+// Or use io.Writer to write it.
 func MayWriteLevel(w io.Writer, level Level, bs []byte) (int, error) {
 	if lw, ok := w.(LevelWriter); ok {
 		return lw.WriteLevel(level, bs)
