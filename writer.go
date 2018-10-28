@@ -32,7 +32,8 @@ type LevelWriter interface {
 	WriteLevel(level Level, bs []byte) (n int, err error)
 }
 
-// MayWriteLevel try
+// MayWriteLevel firstly tries to call the method WriteLevel to write the data.
+// Or use io.Writer to write it.
 func MayWriteLevel(w io.Writer, level Level, bs []byte) (int, error) {
 	if lw, ok := w.(LevelWriter); ok {
 		return lw.WriteLevel(level, bs)
@@ -110,6 +111,45 @@ func FileWriter(path string, mode ...os.FileMode) (io.Writer, io.Closer, error) 
 		return nil, nil, err
 	}
 	return SafeWriter(f), f, nil
+}
+
+// ReopenWriter returns a writer that can be closed then re-opened,
+// which is used for logrotate typically.
+//
+// Notice: it used SafeWriter to wrap the writer, so it's thread-safe.
+func ReopenWriter(factory func() (w io.WriteCloser, reopen <-chan bool, err error)) (io.Writer, error) {
+	w, reopen, err := factory()
+	if err != nil {
+		return nil, err
+	}
+
+	close := func() (int, error) {
+		if w != nil {
+			w.Close()
+		}
+		w = nil
+		reopen = nil
+		return 0, err
+	}
+
+	writer := WriterFunc(func(p []byte) (int, error) {
+		if reopen == nil {
+			if w, reopen, err = factory(); err != nil {
+				return close()
+			}
+		}
+
+		select {
+		case <-reopen:
+			w.Close()
+			if w, reopen, err = factory(); err != nil {
+				return close()
+			}
+		default:
+		}
+		return w.Write(p)
+	})
+	return SafeWriter(writer), nil
 }
 
 // MultiWriter writes one data to more than one destination.
