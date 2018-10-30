@@ -61,6 +61,24 @@ func main() {
 
 `miss` is based on the level, and the log output interfaces is **`func(string, ...interface{}) error`**, the meaning of the arguments of which is decided by the encoder. See below.
 
+Furthermore, `miss` has built in a global logger, which is equal to `miss.New(miss.KvTextEncoder(os.Stdout, miss.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
+```go
+SetGlobalLogger(newLogger Logger)
+GetGlobalLogger() Logger
+
+WithLevel(level Level) Logger
+WithEncoder(encoder Encoder) Logger
+WithCtx(ctxs ...interface{}) Logger
+
+Trace(msg string, args ...interface{}) error
+Debug(msg string, args ...interface{}) error
+Info(msg string, args ...interface{}) error
+Warn(msg string, args ...interface{}) error
+Error(msg string, args ...interface{}) error
+Panic(msg string, args ...interface{}) error
+Fatal(msg string, args ...interface{}) error
+```
+
 
 ### Inherit the context of the parent logger
 
