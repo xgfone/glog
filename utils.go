@@ -119,8 +119,9 @@ func (m MultiError) Errors() []error {
 //   interface Byter
 //   interface MarshalText
 //
-// For other types, return the error ErrType.
-func ToBytesErr(i interface{}) ([]byte, error) {
+// For other types, use fmt.Sprintf("%v") to format it if fmtSprintf is true,
+// or return the error ErrType.
+func ToBytesErr(i interface{}, fmtSprintf ...bool) ([]byte, error) {
 	switch v := i.(type) {
 	case nil:
 		return nilBytes, nil
@@ -168,18 +169,21 @@ func ToBytesErr(i interface{}) ([]byte, error) {
 	case fmt.Stringer:
 		return []byte(v.String()), nil
 	default:
+		if len(fmtSprintf) > 0 && fmtSprintf[0] {
+			return []byte(fmt.Sprintf("%v", v)), nil
+		}
 		return nil, ErrType
 	}
 }
 
 // ToBytes is the same as ToBytesErr, but ignoring the error.
-func ToBytes(i interface{}) []byte {
-	bs, _ := ToBytesErr(i)
+func ToBytes(i interface{}, fmtSprintf ...bool) []byte {
+	bs, _ := ToBytesErr(i, fmtSprintf...)
 	return bs
 }
 
 // ToStringErr is the same as ToBytesErr, but returns string.
-func ToStringErr(i interface{}) (string, error) {
+func ToStringErr(i interface{}, fmtSprintf ...bool) (string, error) {
 	switch v := i.(type) {
 	case nil:
 		return "nil", nil
@@ -190,19 +194,19 @@ func ToStringErr(i interface{}) (string, error) {
 	case fmt.Stringer:
 		return v.String(), nil
 	default:
-		bs, err := ToBytesErr(i)
+		bs, err := ToBytesErr(i, fmtSprintf...)
 		return string(bs), err
 	}
 }
 
 // ToString is the same as ToBytesErr, but returns string and ignores the error.
-func ToString(i interface{}) string {
-	s, _ := ToStringErr(i)
+func ToString(i interface{}, fmtSprintf ...bool) string {
+	s, _ := ToStringErr(i, fmtSprintf...)
 	return s
 }
 
 // WriteIntoBuffer is the same as ToBytesErr, but writes the result into w.
-func WriteIntoBuffer(w *bytes.Buffer, i interface{}) error {
+func WriteIntoBuffer(w *bytes.Buffer, i interface{}, fmtSprintf ...bool) error {
 	switch v := i.(type) {
 	case nil:
 		w.WriteString("nil")
@@ -215,7 +219,7 @@ func WriteIntoBuffer(w *bytes.Buffer, i interface{}) error {
 	case fmt.Stringer:
 		w.WriteString(v.String())
 	default:
-		bs, err := ToBytesErr(i)
+		bs, err := ToBytesErr(i, fmtSprintf...)
 		if err != nil {
 			return err
 		}

@@ -280,14 +280,14 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 			if v, err = MayBeValuer(d, l, ctxs[i]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v); err != nil {
+			if err = WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 			w.WriteString(c.TextKVSep)
 			if v, err = MayBeValuer(d, l, ctxs[i+1]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v); err != nil {
+			if err = WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 			sep = true
@@ -301,7 +301,7 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 			if v, err = MayBeValuer(d, l, args[i]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v); err != nil {
+			if err = WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 
@@ -310,7 +310,7 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 			if v, err = MayBeValuer(d, l, args[i+1]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v); err != nil {
+			if err = WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 			sep = true
@@ -371,7 +371,7 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 				if v, err = MayBeValuer(d, l, v); err != nil {
 					return err
 				}
-				if err = WriteIntoBuffer(w, v); err != nil {
+				if err = WriteIntoBuffer(w, v, true); err != nil {
 					return err
 				}
 				w.WriteByte(']')
