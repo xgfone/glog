@@ -17,7 +17,7 @@ package miss
 import "os"
 
 var defaultConf = EncoderConfig{IsLevel: true, IsTime: true}
-var root = New(KvTextEncoder(os.Stdout, defaultConf)).(logger)
+var root = New(FmtTextEncoder(os.Stdout, defaultConf)).(logger)
 
 // SetGlobalLogger sets the global logger to log.
 //
