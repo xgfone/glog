@@ -46,6 +46,10 @@ type Logger interface {
 	Encoder(encoder Encoder) Logger
 	Cxt(ctxs ...interface{}) Logger
 
+	GetDepth() int
+	GetLevel() Level
+	GetEncoder() Encoder
+
 	Trace(msg string, args ...interface{}) error
 	Debug(msg string, args ...interface{}) error
 	Info(msg string, args ...interface{}) error
@@ -82,6 +86,18 @@ func newLogger(l logger) logger {
 
 		depth: l.depth,
 	}
+}
+
+func (l logger) GetDepth() int {
+	return l.depth
+}
+
+func (l logger) GetLevel() Level {
+	return l.lvl
+}
+
+func (l logger) GetEncoder() Encoder {
+	return l.enc
 }
 
 func (l logger) Depth(depth int) Logger {
