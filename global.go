@@ -38,10 +38,7 @@ func SetGlobalLogger(log Logger) {
 
 // GetGlobalLogger returns the global logger.
 func GetGlobalLogger() Logger {
-	if last != nil {
-		return last
-	}
-	return root
+	return last
 }
 
 // WithLevel returns a new logger with the level.
@@ -64,6 +61,26 @@ func WithEncoder(encoder Encoder) Logger {
 // we use WithCtx, not Ctx.
 func WithCtx(ctxs ...interface{}) Logger {
 	return root.Cxt(ctxs...)
+}
+
+// WithDepth returns a new logger with the caller depth.
+func WithDepth(depth int) Logger {
+	return root.Depth(depth)
+}
+
+// GetDepth returns the caller depth of the global logger.
+func GetDepth() int {
+	return root.GetDepth()
+}
+
+// GetLevel returns the level of the global logger.
+func GetLevel() Level {
+	return root.GetLevel()
+}
+
+// GetEncoder returns the encoder of the global logger.
+func GetEncoder() Encoder {
+	return root.GetEncoder()
 }
 
 // Trace fires a TRACE log.
