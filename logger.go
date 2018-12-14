@@ -40,6 +40,7 @@ type Logger interface {
 	//   func Warn(m string, args ...interface{}) { logger.Debug(m, args...) }
 	//   ...
 	//
+	// Notice: the returned may be itself or a new Logger with the new depth.
 	Depth(stackDepth int) Logger
 
 	Level(level Level) Logger
