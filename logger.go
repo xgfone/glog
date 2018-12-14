@@ -27,6 +27,8 @@ const DefaultLoggerDepth = 2
 
 // Logger is a logger interface.
 type Logger interface {
+	// Depth returns a new Logger with the stack depth.
+	//
 	// stackDepth is the calling depth of the logger, which will be passed to
 	// the encoder. The default depth is the global variable DefaultLoggerDepth.
 	//
@@ -40,11 +42,15 @@ type Logger interface {
 	//   func Warn(m string, args ...interface{}) { logger.Debug(m, args...) }
 	//   ...
 	//
-	// Notice: the returned may be itself or a new Logger with the new depth.
 	Depth(stackDepth int) Logger
 
+	// Level returns a new Logger with the new level.
 	Level(level Level) Logger
+
+	// Encoder returns a new logger with the new encoder.
 	Encoder(encoder Encoder) Logger
+
+	// Ctx returns a new logger with the new contexts.
 	Cxt(ctxs ...interface{}) Logger
 
 	GetDepth() int
