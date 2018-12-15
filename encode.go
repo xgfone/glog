@@ -106,7 +106,7 @@ func (e encoderFunc) Encode(d int, l Level, m string, args, ctx []interface{}) e
 	return e(d+1, l, m, args, ctx)
 }
 
-// EncoderFunc converts a function to an Encoder.
+// EncoderFunc converts a function to an hashable Encoder.
 func EncoderFunc(f func(int, Level, string, []interface{}, []interface{}) error) Encoder {
 	// return encoderFunc(f)
 
