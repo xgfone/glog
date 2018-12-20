@@ -73,12 +73,3 @@ func ExampleLevelFilterWriter() {
 	// Output:
 	// will output
 }
-
-func TestEncoderToWriterCaches(t *testing.T) {
-	buf := bytes.NewBufferString("abc")
-	encoder := KvTextEncoder(buf)
-
-	if b, ok := EncoderToWriterCaches[encoder].(*bytes.Buffer); !ok || b != buf {
-		t.Fail()
-	}
-}

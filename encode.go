@@ -21,14 +21,6 @@ import (
 	"time"
 )
 
-// EncoderToWriterCaches is used to cache the writer for the built-in encoder.
-//
-// When you use the built-in encoder, it will add the encoder and the writer
-// into this map. So later you can get the corresponding writer by the encoder.
-//
-// For the third-part encoders, they may be added into it automatically.
-var EncoderToWriterCaches = make(map[Encoder]io.Writer, 4)
-
 // The separators of the KV and the KV pair.
 const (
 	TextKVSep     = "="
@@ -269,7 +261,7 @@ func newKvEncoderConfig(conf ...EncoderConfig) EncoderConfig {
 func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	enc := EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
+	return EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		arglen := len(args)
 		ctxlen := len(ctxs)
@@ -360,9 +352,6 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 		_, err = MayWriteLevel(out, l, w.Bytes())
 		return err
 	})
-
-	EncoderToWriterCaches[enc] = out
-	return enc
 }
 
 // FmtTextEncoder returns a text encoder based on the % formatter,
@@ -372,7 +361,7 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	enc := EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
+	return EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		var err error
 		var sep bool
@@ -431,15 +420,12 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 		_, err = MayWriteLevel(out, l, w.Bytes())
 		return err
 	})
-
-	EncoderToWriterCaches[enc] = out
-	return enc
 }
 
 func kvJSONEncoder(std bool, w io.Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	enc := EncoderFunc(w, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
+	return EncoderFunc(w, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		_len := 3
 		argslen := len(args)
@@ -499,9 +485,6 @@ func kvJSONEncoder(std bool, w io.Writer, conf ...EncoderConfig) Encoder {
 		}
 		return err
 	})
-
-	EncoderToWriterCaches[enc] = w
-	return enc
 }
 
 // KvStdJSONEncoder returns a new JSON encoder using the standard library,
