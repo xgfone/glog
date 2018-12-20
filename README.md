@@ -9,7 +9,7 @@ miss is meaning:
 
 It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
 
-See the [DOC](https://godoc.org/github.com/xgfone/miss).
+See the [GoDoc](https://godoc.org/github.com/xgfone/miss).
 
 ## Basic Principle
 
@@ -27,6 +27,52 @@ See the [DOC](https://godoc.org/github.com/xgfone/miss).
 - Lazy evaluation of expensive operations
 - Support the native `io.Writer` as the output, and provied some advanced `io.Writer` implementations, such as `MultiWriter` and `LevelWriter`.
 - Built-in support for logging to files, syslog, and the network
+
+
+## `Logger`
+
+```go
+type Logger interface {
+	// Depth returns a new Logger with the stack depth.
+	//
+	// stackDepth is the calling depth of the logger, which will be passed to
+	// the encoder. The default depth is the global variable DefaultLoggerDepth
+	// for the new Logger.
+	//
+	// It should be used typically when you wrap the logger. For example,
+	//
+	//   logger := miss.New(miss.KvTextEncoder(os.Stdout))
+	//   logger = logger.Depth(logger.GetDepth() + 1)
+	//
+	//   func Debug(m string, args ...interface{}) { logger.Debug(m, args...) }
+	//   func Info(m string, args ...interface{}) { logger.Debug(m, args...) }
+	//   func Warn(m string, args ...interface{}) { logger.Debug(m, args...) }
+	//   ...
+	//
+	Depth(stackDepth int) Logger
+
+	// Level returns a new Logger with the new level.
+	Level(level Level) Logger
+
+	// Encoder returns a new logger with the new encoder.
+	Encoder(encoder Encoder) Logger
+
+	// Ctx returns a new logger with the new contexts.
+	Cxt(ctxs ...interface{}) Logger
+
+	GetDepth() int
+	GetLevel() Level
+	GetEncoder() Encoder
+
+	Trace(msg string, args ...interface{}) error
+	Debug(msg string, args ...interface{}) error
+	Info(msg string, args ...interface{}) error
+	Warn(msg string, args ...interface{}) error
+	Error(msg string, args ...interface{}) error
+	Panic(msg string, args ...interface{}) error
+	Fatal(msg string, args ...interface{}) error
+}
+```
 
 
 ## Example
@@ -69,6 +115,11 @@ GetGlobalLogger() Logger
 WithLevel(level Level) Logger
 WithEncoder(encoder Encoder) Logger
 WithCtx(ctxs ...interface{}) Logger
+WithDepth(depth int) Logger
+
+GetDepth() int
+GetLevel() Level
+GetEncoder() Encoder
 
 Trace(msg string, args ...interface{}) error
 Debug(msg string, args ...interface{}) error
@@ -79,6 +130,27 @@ Panic(msg string, args ...interface{}) error
 Fatal(msg string, args ...interface{}) error
 ```
 
+If you prefer the logger without the error, you maybe use `LoggerWithoutError` converted by `ToLoggerWithoutError(Logger)` from `Logger` as follow:
+```go
+type LoggerWithoutError interface {
+	Depth(stackDepth int) LoggerWithoutError
+	Level(level Level) LoggerWithoutError
+	Encoder(encoder Encoder) LoggerWithoutError
+	Cxt(ctxs ...interface{}) LoggerWithoutError
+
+	GetDepth() int
+	GetLevel() Level
+	GetEncoder() Encoder
+
+	Trace(msg string, args ...interface{})
+	Debug(msg string, args ...interface{})
+	Info(msg string, args ...interface{})
+	Warn(msg string, args ...interface{})
+	Error(msg string, args ...interface{})
+	Panic(msg string, args ...interface{})
+	Fatal(msg string, args ...interface{})
+}
+```
 
 ### Inherit the context of the parent logger
 

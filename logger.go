@@ -30,12 +30,13 @@ type Logger interface {
 	// Depth returns a new Logger with the stack depth.
 	//
 	// stackDepth is the calling depth of the logger, which will be passed to
-	// the encoder. The default depth is the global variable DefaultLoggerDepth.
+	// the encoder. The default depth is the global variable DefaultLoggerDepth
+	// for the new Logger.
 	//
 	// It should be used typically when you wrap the logger. For example,
 	//
 	//   logger := miss.New(miss.KvTextEncoder(os.Stdout))
-	//   logger = logger.Depth(miss.DefaultLoggerDepth + 1)
+	//   logger = logger.Depth(logger.GetDepth() + 1)
 	//
 	//   func Debug(m string, args ...interface{}) { logger.Debug(m, args...) }
 	//   func Info(m string, args ...interface{}) { logger.Debug(m, args...) }
