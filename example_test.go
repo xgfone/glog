@@ -16,9 +16,21 @@ package miss
 
 import (
 	"bytes"
+	"log"
 	"os"
 	"testing"
 )
+
+func TestStdLog(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	logger := New(FmtTextEncoder(buf))
+	stdlog := log.New(logger.GetEncoder().Writer(), "[stdlog] ", log.Lshortfile)
+	stdlog.Printf("hello, %s\n", "world")
+
+	if buf.String() != "[stdlog] example_test.go:28: hello, world\n" {
+		t.Error(buf.String())
+	}
+}
 
 func ExampleKvTextEncoder() {
 	conf := EncoderConfig{IsLevel: true}

@@ -51,7 +51,39 @@ var ErrKeyValueNum = fmt.Errorf("the number of key-values must be even")
 // it should firstly decide whether the writer is LevelWriter and use WriteLevel
 // to write the log, not Write.
 type Encoder interface {
+	// Return the underlying writer.
+	//
+	// Notice: only the most underlying encoder requires it. For the inner
+	// encoder, such as FilterEncoder and MultiEncoder, it may be nil.
+	// So, at the moment, the log information should be passed to the next encoder.
+	Writer() io.Writer
+
+	// Encode the log and write it into the underlying writer.
 	Encode(depth int, level Level, msg string, args []interface{}, ctx []interface{}) error
+}
+
+// FuncEncoder stands for a function encoder, which is used to simplify
+// the funcion signature.
+type FuncEncoder func(w io.Writer, depth int, lvl Level, msg string, args []interface{}, ctx []interface{}) error
+
+type encoderFuncWrapper struct {
+	writer  io.Writer
+	encoder FuncEncoder
+}
+
+func (e *encoderFuncWrapper) Writer() io.Writer {
+	return e.writer
+}
+
+func (e *encoderFuncWrapper) Encode(d int, l Level, m string, args, ctx []interface{}) error {
+	return e.encoder(e.writer, d+1, l, m, args, ctx)
+}
+
+// EncoderFunc converts a function to an hashable Encoder.
+func EncoderFunc(w io.Writer, f FuncEncoder) Encoder {
+	// We use the pointer to encoderFuncWrapper instead of encoderFunc
+	// in order to make it be hashable.
+	return &encoderFuncWrapper{writer: w, encoder: f}
 }
 
 // MultiEncoder uses many encoders to encode the log record.
@@ -73,7 +105,7 @@ type Encoder interface {
 //         }
 //     }
 func MultiEncoder(encoders ...Encoder) Encoder {
-	return EncoderFunc(func(d int, l Level, m string, a, c []interface{}) error {
+	return EncoderFunc(nil, func(w io.Writer, d int, l Level, m string, a, c []interface{}) error {
 		d++
 		var hasErr bool
 		errs := make([]error, len(encoders))
@@ -92,29 +124,6 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 	})
 }
 
-type encoderFuncWrapper struct {
-	encoder func(int, Level, string, []interface{}, []interface{}) error
-}
-
-func (e *encoderFuncWrapper) Encode(d int, l Level, m string, args, ctx []interface{}) error {
-	return e.encoder(d+1, l, m, args, ctx)
-}
-
-type encoderFunc func(int, Level, string, []interface{}, []interface{}) error
-
-func (e encoderFunc) Encode(d int, l Level, m string, args, ctx []interface{}) error {
-	return e(d+1, l, m, args, ctx)
-}
-
-// EncoderFunc converts a function to an hashable Encoder.
-func EncoderFunc(f func(int, Level, string, []interface{}, []interface{}) error) Encoder {
-	// return encoderFunc(f)
-
-	// We use the pointer to encoderFuncWrapper instead of encoderFunc
-	// in order to make it be hashable.
-	return &encoderFuncWrapper{encoder: f}
-}
-
 // FilterEncoder returns an encoder that only forwards logs
 // to the wrapped encoder if the given function evaluates true.
 //
@@ -125,13 +134,12 @@ func EncoderFunc(f func(int, Level, string, []interface{}, []interface{}) error)
 //        return level >= ERROR
 //    })
 //
-func FilterEncoder(f func(int, Level, string, []interface{}, []interface{}) bool,
+func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []interface{}) bool,
 	encoder Encoder) Encoder {
-	return EncoderFunc(func(d int, l Level, m string, args []interface{},
+	return EncoderFunc(nil, func(w io.Writer, d int, l Level, m string, args []interface{},
 		ctxs []interface{}) error {
-		d++
-		if f(d, l, m, args, ctxs) {
-			return encoder.Encode(d, l, m, args, ctxs)
+		if f(l, m, args, ctxs) {
+			return encoder.Encode(d+1, l, m, args, ctxs)
 		}
 		return nil
 	})
@@ -145,14 +153,14 @@ func FilterEncoder(f func(int, Level, string, []interface{}, []interface{}) bool
 //     miss.LevelFilterEncoder(miss.ERROR, miss.KvTextEncoder(os.Stdout))
 //
 func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
-	return FilterEncoder(func(d int, l Level, m string, args, ctxs []interface{}) bool {
+	return FilterEncoder(func(l Level, m string, args, ctxs []interface{}) bool {
 		return l >= level
 	}, encoder)
 }
 
 // NothingEncoder returns an encoder that does nothing.
 func NothingEncoder() Encoder {
-	return EncoderFunc(func(d int, l Level, m string, args, ctx []interface{}) error {
+	return EncoderFunc(nil, func(w io.Writer, d int, l Level, m string, a, c []interface{}) error {
 		return nil
 	})
 }
@@ -261,7 +269,7 @@ func newKvEncoderConfig(conf ...EncoderConfig) EncoderConfig {
 func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	enc := EncoderFunc(func(d int, l Level, m string, args, ctxs []interface{}) error {
+	enc := EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		arglen := len(args)
 		ctxlen := len(ctxs)
@@ -364,7 +372,7 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	enc := EncoderFunc(func(d int, l Level, m string, args, ctxs []interface{}) error {
+	enc := EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		var err error
 		var sep bool
@@ -431,7 +439,7 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 func kvJSONEncoder(std bool, w io.Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	enc := EncoderFunc(func(d int, l Level, m string, args, ctxs []interface{}) error {
+	enc := EncoderFunc(w, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		_len := 3
 		argslen := len(args)
