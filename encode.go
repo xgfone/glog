@@ -42,6 +42,9 @@ var ErrKeyValueNum = fmt.Errorf("the number of key-values must be even")
 // it should firstly decide whether the writer is LevelWriter and use WriteLevel
 // to write the log, not Write.
 type Encoder interface {
+	// Reset the underlying writer.
+	ResetWriter(Writer)
+
 	// Return the underlying writer.
 	//
 	// Notice: only the most underlying encoder requires it. For the inner
@@ -64,6 +67,10 @@ type encoderFuncWrapper struct {
 
 func (e *encoderFuncWrapper) Writer() Writer {
 	return e.writer
+}
+
+func (e *encoderFuncWrapper) ResetWriter(w Writer) {
+	e.writer = w
 }
 
 func (e *encoderFuncWrapper) Encode(d int, l Level, m string, args, ctx []interface{}) error {
