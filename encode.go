@@ -379,14 +379,6 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			sep = true
 		}
 
-		if c.IsLevel {
-			if sep {
-				w.WriteByte(' ')
-			}
-			w.Write(l.Bytes())
-			sep = true
-		}
-
 		ctxlen := len(ctxs)
 		if ctxlen > 0 {
 			if sep {
@@ -394,21 +386,31 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			}
 
 			for _, v := range ctxs {
-				w.WriteByte('[')
+				w.WriteByte('{')
 				if v, err = MayBeValuer(d, l, v); err != nil {
 					return err
 				}
 				if err = WriteIntoBuffer(w, v, true); err != nil {
 					return err
 				}
-				w.WriteByte(']')
+				w.WriteByte('}')
 			}
 
 			sep = true
 		}
 
+		if c.IsLevel {
+			if sep {
+				w.WriteByte(' ')
+			}
+			w.WriteString("[")
+			w.Write(l.Bytes())
+			w.WriteString("]")
+			sep = true
+		}
+
 		if sep {
-			w.WriteString(" :=>: ")
+			w.WriteString(": ")
 		}
 
 		for i := range args {

@@ -59,7 +59,7 @@ func ExampleFmtTextEncoder() {
 	log.Info("test %s %s", "value1", "value2")
 
 	// Output:
-	// INFO [kv][text][example] :=>: test value1 value2
+	// {kv}{text}{example} [INFO]: test value1 value2
 }
 
 func ExampleLevelFilterWriter() {
