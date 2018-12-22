@@ -25,16 +25,21 @@ import (
 
 var fileFlag = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 
-// LevelWriter supports not only io.Writer but also WriteLevel.
+// Writer is equal to io.Writer.
+//
+// We do it in order to collect the writers to show together in godoc.
+type Writer = io.Writer
+
+// LevelWriter supports not only Writer but also WriteLevel.
 type LevelWriter interface {
-	io.Writer
+	Writer
 
 	WriteLevel(level Level, bs []byte) (n int, err error)
 }
 
 // MayWriteLevel firstly tries to call the method WriteLevel to write the data.
-// Or use io.Writer to write it.
-func MayWriteLevel(w io.Writer, level Level, bs []byte) (int, error) {
+// Or use Writer to write it.
+func MayWriteLevel(w Writer, level Level, bs []byte) (int, error) {
 	if lw, ok := w.(LevelWriter); ok {
 		return lw.WriteLevel(level, bs)
 	}
@@ -47,8 +52,8 @@ func (w writerFunc) Write(p []byte) (int, error) {
 	return w(p)
 }
 
-// WriterFunc converts a function to io.Writer.
-func WriterFunc(f func([]byte) (int, error)) io.Writer {
+// WriterFunc converts a function to Writer.
+func WriterFunc(f func([]byte) (int, error)) Writer {
 	return writerFunc(f)
 }
 
@@ -68,7 +73,7 @@ func LevelWriterFunc(f func(Level, []byte) (int, error)) LevelWriter {
 }
 
 // LevelFilterWriter filters the logs whose level is less than lvl.
-func LevelFilterWriter(lvl Level, w io.Writer) LevelWriter {
+func LevelFilterWriter(lvl Level, w Writer) LevelWriter {
 	return LevelWriterFunc(func(l Level, p []byte) (int, error) {
 		if l < lvl {
 			return 0, nil
@@ -78,7 +83,7 @@ func LevelFilterWriter(lvl Level, w io.Writer) LevelWriter {
 }
 
 // DiscardWriter returns a writer which will discard all input.
-func DiscardWriter() io.Writer {
+func DiscardWriter() Writer {
 	return WriterFunc(func(p []byte) (int, error) {
 		return len(p), nil
 	})
@@ -86,7 +91,7 @@ func DiscardWriter() io.Writer {
 
 // NetWriter opens a socket to the given address and writes the log
 // over the connection.
-func NetWriter(network, addr string) (io.Writer, io.Closer, error) {
+func NetWriter(network, addr string) (Writer, io.Closer, error) {
 	conn, err := net.Dial(network, addr)
 	if err != nil {
 		return nil, nil, err
@@ -100,7 +105,7 @@ func NetWriter(network, addr string) (io.Writer, io.Closer, error) {
 // If the path already exists, FileHook will append to the given file.
 // If it does not, FileHook will create the file with mode 0644,
 // but you can pass the second argument, mode, to modify it.
-func FileWriter(path string, mode ...os.FileMode) (io.Writer, io.Closer, error) {
+func FileWriter(path string, mode ...os.FileMode) (Writer, io.Closer, error) {
 	var _mode os.FileMode = 0644
 	if len(mode) > 0 {
 		_mode = mode[0]
@@ -117,7 +122,7 @@ func FileWriter(path string, mode ...os.FileMode) (io.Writer, io.Closer, error) 
 // which is used for logrotate typically.
 //
 // Notice: it used SafeWriter to wrap the writer, so it's thread-safe.
-func ReopenWriter(factory func() (w io.WriteCloser, reopen <-chan bool, err error)) (io.Writer, error) {
+func ReopenWriter(factory func() (w io.WriteCloser, reopen <-chan bool, err error)) (Writer, error) {
 	w, reopen, err := factory()
 	if err != nil {
 		return nil, err
@@ -153,7 +158,7 @@ func ReopenWriter(factory func() (w io.WriteCloser, reopen <-chan bool, err erro
 }
 
 // MultiWriter writes one data to more than one destination.
-func MultiWriter(outs ...io.Writer) io.Writer {
+func MultiWriter(outs ...Writer) Writer {
 	return WriterFunc(func(p []byte) (n int, err error) {
 		for _, out := range outs {
 			if m, e := out.Write(p); e != nil {
@@ -172,7 +177,7 @@ func MultiWriter(outs ...io.Writer) io.Writer {
 // For example, you might want to log to a network socket,
 // but failover to writing to a file if the network fails,
 // and then to standard out if the file write fails.
-func FailoverWriter(outs ...io.Writer) io.Writer {
+func FailoverWriter(outs ...Writer) Writer {
 	return WriterFunc(func(p []byte) (n int, err error) {
 		for _, out := range outs {
 			if n, err = out.Write(p); err == nil {
@@ -187,7 +192,7 @@ func FailoverWriter(outs ...io.Writer) io.Writer {
 // can proceed at a time.
 //
 // It's necessary for thread-safe concurrent writes.
-func SafeWriter(w io.Writer) io.Writer {
+func SafeWriter(w Writer) Writer {
 	var mu sync.Mutex
 	return WriterFunc(func(p []byte) (int, error) {
 		mu.Lock()
@@ -200,7 +205,7 @@ func SafeWriter(w io.Writer) io.Writer {
 //
 // It blocks if the channel is full. Useful for async processing
 // of log messages, it's used by BufferedWriter.
-func ChannelWriter(ch chan<- []byte) io.Writer {
+func ChannelWriter(ch chan<- []byte) Writer {
 	return WriterFunc(func(p []byte) (int, error) {
 		ch <- p
 		return len(p), nil
@@ -212,7 +217,7 @@ func ChannelWriter(ch chan<- []byte) io.Writer {
 //
 // Since these writes happen asynchronously, all writes to a BufferedWriter
 // never return an error and any errors from the wrapped writer are ignored.
-func BufferedWriter(bufSize int, w io.Writer) io.Writer {
+func BufferedWriter(bufSize int, w Writer) Writer {
 	ch := make(chan []byte, bufSize)
 	go func() {
 		for bs := range ch {
@@ -227,7 +232,7 @@ func BufferedWriter(bufSize int, w io.Writer) io.Writer {
 // and panic on failure: FileWriter, NetWriter, SyslogWriter, SyslogNetWriter.
 var Must muster
 
-func must(w io.Writer, c io.Closer, err error) (io.Writer, io.Closer) {
+func must(w Writer, c io.Closer, err error) (Writer, io.Closer) {
 	if err != nil {
 		panic(err)
 	}
@@ -236,11 +241,11 @@ func must(w io.Writer, c io.Closer, err error) (io.Writer, io.Closer) {
 
 type muster struct{}
 
-func (m muster) FileWriter(path string, mode ...os.FileMode) (io.Writer, io.Closer) {
+func (m muster) FileWriter(path string, mode ...os.FileMode) (Writer, io.Closer) {
 	return must(FileWriter(path, mode...))
 }
 
-func (m muster) NetWriter(network, addr string) (io.Writer, io.Closer) {
+func (m muster) NetWriter(network, addr string) (Writer, io.Closer) {
 	return must(NetWriter(network, addr))
 }
 

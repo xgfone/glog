@@ -17,7 +17,6 @@ package miss
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"time"
 )
 
@@ -48,7 +47,7 @@ type Encoder interface {
 	// Notice: only the most underlying encoder requires it. For the inner
 	// encoder, such as FilterEncoder and MultiEncoder, it may be nil.
 	// So, at the moment, the log information should be passed to the next encoder.
-	Writer() io.Writer
+	Writer() Writer
 
 	// Encode the log and write it into the underlying writer.
 	Encode(depth int, level Level, msg string, args []interface{}, ctx []interface{}) error
@@ -56,14 +55,14 @@ type Encoder interface {
 
 // FuncEncoder stands for a function encoder, which is used to simplify
 // the funcion signature.
-type FuncEncoder func(w io.Writer, depth int, lvl Level, msg string, args []interface{}, ctx []interface{}) error
+type FuncEncoder func(w Writer, depth int, lvl Level, msg string, args []interface{}, ctx []interface{}) error
 
 type encoderFuncWrapper struct {
-	writer  io.Writer
+	writer  Writer
 	encoder FuncEncoder
 }
 
-func (e *encoderFuncWrapper) Writer() io.Writer {
+func (e *encoderFuncWrapper) Writer() Writer {
 	return e.writer
 }
 
@@ -72,7 +71,7 @@ func (e *encoderFuncWrapper) Encode(d int, l Level, m string, args, ctx []interf
 }
 
 // EncoderFunc converts a function to an hashable Encoder.
-func EncoderFunc(w io.Writer, f FuncEncoder) Encoder {
+func EncoderFunc(w Writer, f FuncEncoder) Encoder {
 	// We use the pointer to encoderFuncWrapper instead of encoderFunc
 	// in order to make it be hashable.
 	return &encoderFuncWrapper{writer: w, encoder: f}
@@ -97,7 +96,7 @@ func EncoderFunc(w io.Writer, f FuncEncoder) Encoder {
 //         }
 //     }
 func MultiEncoder(encoders ...Encoder) Encoder {
-	return EncoderFunc(nil, func(w io.Writer, d int, l Level, m string, a, c []interface{}) error {
+	return EncoderFunc(nil, func(w Writer, d int, l Level, m string, a, c []interface{}) error {
 		d++
 		var hasErr bool
 		errs := make([]error, len(encoders))
@@ -128,7 +127,7 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 //
 func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []interface{}) bool,
 	encoder Encoder) Encoder {
-	return EncoderFunc(nil, func(w io.Writer, d int, l Level, m string, args []interface{},
+	return EncoderFunc(nil, func(w Writer, d int, l Level, m string, args []interface{},
 		ctxs []interface{}) error {
 		if f(l, m, args, ctxs) {
 			return encoder.Encode(d+1, l, m, args, ctxs)
@@ -152,7 +151,7 @@ func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
 
 // NothingEncoder returns an encoder that does nothing.
 func NothingEncoder() Encoder {
-	return EncoderFunc(nil, func(w io.Writer, d int, l Level, m string, a, c []interface{}) error {
+	return EncoderFunc(nil, func(w Writer, d int, l Level, m string, a, c []interface{}) error {
 		return nil
 	})
 }
@@ -258,10 +257,10 @@ func newKvEncoderConfig(conf ...EncoderConfig) EncoderConfig {
 // which will output the result into out.
 //
 // Notice: This encoder supports LevelWriter.
-func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
+func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	return EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
+	return EncoderFunc(out, func(out Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		arglen := len(args)
 		ctxlen := len(ctxs)
@@ -358,10 +357,10 @@ func KvTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 // which will output the result into out.
 //
 // Notice: This encoder supports LevelWriter.
-func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
+func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	return EncoderFunc(out, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
+	return EncoderFunc(out, func(out Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		var err error
 		var sep bool
@@ -422,10 +421,10 @@ func FmtTextEncoder(out io.Writer, conf ...EncoderConfig) Encoder {
 	})
 }
 
-func kvJSONEncoder(std bool, w io.Writer, conf ...EncoderConfig) Encoder {
+func kvJSONEncoder(std bool, w Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	return EncoderFunc(w, func(out io.Writer, d int, l Level, m string, args, ctxs []interface{}) error {
+	return EncoderFunc(w, func(out Writer, d int, l Level, m string, args, ctxs []interface{}) error {
 		d++
 		_len := 3
 		argslen := len(args)
@@ -489,7 +488,7 @@ func kvJSONEncoder(std bool, w io.Writer, conf ...EncoderConfig) Encoder {
 
 // KvStdJSONEncoder returns a new JSON encoder using the standard library,
 // json, to encode the log record.
-func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
+func KvStdJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 	return kvJSONEncoder(true, w, conf...)
 }
 
@@ -498,6 +497,6 @@ func KvStdJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
 //
 // Except for the type of Array and Slice, it does not use the reflection.
 // So it's faster than the standard library json.
-func KvSimpleJSONEncoder(w io.Writer, conf ...EncoderConfig) Encoder {
+func KvSimpleJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 	return kvJSONEncoder(false, w, conf...)
 }

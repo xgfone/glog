@@ -11,6 +11,12 @@ It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](ht
 
 See the [GoDoc](https://godoc.org/github.com/xgfone/miss).
 
+
+## Prerequisite
+
+Now `miss` requires Go `1.9+`.
+
+
 ## Basic Principle
 
 - The better performance
