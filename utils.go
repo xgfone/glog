@@ -84,7 +84,18 @@ type MultiError struct {
 }
 
 func (m MultiError) Error() string {
-	return ""
+	switch len(m.errs) {
+	case 0:
+		return ""
+	case 1:
+		return m.errs[0].Error()
+	default:
+		s := m.errs[0].Error()
+		for _, e := range m.errs[1:] {
+			s = fmt.Sprintf("%s > %s", s, e.Error())
+		}
+		return s
+	}
 }
 
 // Errors returns a list of errors.
