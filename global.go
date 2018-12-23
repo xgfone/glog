@@ -14,7 +14,10 @@
 
 package miss
 
-import "os"
+import (
+	"io"
+	"os"
+)
 
 var last Logger
 var root Logger
@@ -131,3 +134,40 @@ func Panic(msg string, args ...interface{}) error {
 func Fatal(msg string, args ...interface{}) error {
 	return root.Fatal(msg, args)
 }
+
+// SimpleLogger returns a new Logger with the level and the writer will use
+// os.Stdout if filepath is "", or use the file based on SizedRotatingFileWriter.
+//
+// Notice: the file size is 1GB and the number is 30 by default. But you can
+// change it by passing the last two parameters as follow.
+//
+//     FileLogger(level, filepath, 2*1024*1024*1024) // 2GB each file
+//     FileLogger(level, filepath, 2*1024*1024*1024, 10) // 2GB each file and 10 files
+//
+func SimpleLogger(level, filepath string, args ...int) (Logger, io.Closer, error) {
+	logger := GetGlobalLogger().Level(NameToLevel(level))
+	if filepath == "" {
+		return logger, nothingCloser{}, nil
+	}
+
+	size := 1024 * 1024 * 1024
+	count := 30
+	switch len(args) {
+	case 1:
+		size = args[0]
+	case 2:
+		size = args[0]
+		count = args[1]
+	}
+
+	file, err := SizedRotatingFileWriter(filepath, size, count)
+	if err != nil {
+		return nil, nil, err
+	}
+	logger.GetEncoder().ResetWriter(file)
+	return logger, file, nil
+}
+
+type nothingCloser struct{}
+
+func (nc nothingCloser) Close() error { return nil }
