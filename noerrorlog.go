@@ -30,7 +30,7 @@ type loggerWithoutError struct {
 
 func newLoggerWithoutError(logger Logger, depth bool) LoggerWithoutError {
 	if depth {
-		return loggerWithoutError{Logger: logger.Depth(logger.GetDepth() + 2)}
+		return loggerWithoutError{Logger: logger.Depth(logger.GetDepth() + 1)}
 	}
 	return loggerWithoutError{Logger: logger}
 }
@@ -45,7 +45,7 @@ func ToLoggerWithoutError(logger Logger) LoggerWithoutError {
 // Notice: LoggerWithoutError must be the built-in implementation
 // returned by ToLoggerWithoutError.
 func ToLogger(logger LoggerWithoutError) Logger {
-	return logger.(loggerWithoutError).Logger.Depth(logger.GetDepth() - 2)
+	return logger.(loggerWithoutError).Logger.Depth(logger.GetDepth() - 1)
 }
 
 func (l loggerWithoutError) Depth(stackDepth int) LoggerWithoutError {

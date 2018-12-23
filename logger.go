@@ -80,7 +80,7 @@ type logger struct {
 
 // New returns a new Logger.
 func New(encoder Encoder) Logger {
-	return logger{
+	return &logger{
 		lvl: TRACE,
 		enc: encoder,
 		ctx: make([]interface{}, 0),
@@ -89,8 +89,8 @@ func New(encoder Encoder) Logger {
 	}
 }
 
-func newLogger(l logger) logger {
-	return logger{
+func newLogger(l *logger) *logger {
+	return &logger{
 		enc: l.enc,
 		ctx: l.ctx,
 		lvl: l.lvl,
@@ -99,47 +99,47 @@ func newLogger(l logger) logger {
 	}
 }
 
-func (l logger) Writer() io.Writer {
+func (l *logger) Writer() io.Writer {
 	return l.enc.Writer()
 }
 
-func (l logger) GetDepth() int {
+func (l *logger) GetDepth() int {
 	return l.depth
 }
 
-func (l logger) GetLevel() Level {
+func (l *logger) GetLevel() Level {
 	return l.lvl
 }
 
-func (l logger) GetEncoder() Encoder {
+func (l *logger) GetEncoder() Encoder {
 	return l.enc
 }
 
-func (l logger) Depth(depth int) Logger {
+func (l *logger) Depth(depth int) Logger {
 	log := newLogger(l)
 	log.depth = depth
 	return log
 }
 
-func (l logger) Level(level Level) Logger {
+func (l *logger) Level(level Level) Logger {
 	log := newLogger(l)
 	log.lvl = level
 	return log
 }
 
-func (l logger) Encoder(encoder Encoder) Logger {
+func (l *logger) Encoder(encoder Encoder) Logger {
 	log := newLogger(l)
 	log.enc = encoder
 	return log
 }
 
-func (l logger) Cxt(ctxs ...interface{}) Logger {
+func (l *logger) Cxt(ctxs ...interface{}) Logger {
 	log := newLogger(l)
 	log.ctx = append(l.ctx, ctxs...)
 	return log
 }
 
-func (l logger) log(level Level, msg string, args []interface{}) (err error) {
+func (l *logger) log(level Level, msg string, args []interface{}) (err error) {
 	if level < l.lvl {
 		return nil
 	}
@@ -155,30 +155,30 @@ func (l logger) log(level Level, msg string, args []interface{}) (err error) {
 	return
 }
 
-func (l logger) Trace(msg string, args ...interface{}) error {
+func (l *logger) Trace(msg string, args ...interface{}) error {
 	return l.log(TRACE, msg, args)
 }
 
-func (l logger) Debug(msg string, args ...interface{}) error {
+func (l *logger) Debug(msg string, args ...interface{}) error {
 	return l.log(DEBUG, msg, args)
 }
 
-func (l logger) Info(msg string, args ...interface{}) error {
+func (l *logger) Info(msg string, args ...interface{}) error {
 	return l.log(INFO, msg, args)
 }
 
-func (l logger) Warn(msg string, args ...interface{}) error {
+func (l *logger) Warn(msg string, args ...interface{}) error {
 	return l.log(WARN, msg, args)
 }
 
-func (l logger) Error(msg string, args ...interface{}) error {
+func (l *logger) Error(msg string, args ...interface{}) error {
 	return l.log(ERROR, msg, args)
 }
 
-func (l logger) Panic(msg string, args ...interface{}) error {
+func (l *logger) Panic(msg string, args ...interface{}) error {
 	return l.log(PANIC, msg, args)
 }
 
-func (l logger) Fatal(msg string, args ...interface{}) error {
+func (l *logger) Fatal(msg string, args ...interface{}) error {
 	return l.log(FATAL, msg, args)
 }
