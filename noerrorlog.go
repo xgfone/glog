@@ -1,5 +1,7 @@
 package miss
 
+import "io"
+
 // LoggerWithoutError is equal to Logger, but not returning the error.
 type LoggerWithoutError interface {
 	Depth(stackDepth int) LoggerWithoutError
@@ -7,6 +9,8 @@ type LoggerWithoutError interface {
 	Encoder(encoder Encoder) LoggerWithoutError
 	Cxt(ctxs ...interface{}) LoggerWithoutError
 
+	// Writer is the convenient function of GetEncoder().Writer().
+	Writer() io.Writer
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder

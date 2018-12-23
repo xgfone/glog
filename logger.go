@@ -16,6 +16,7 @@ package miss
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -54,6 +55,8 @@ type Logger interface {
 	// Ctx returns a new logger with the new contexts.
 	Cxt(ctxs ...interface{}) Logger
 
+	// Writer is the convenient function of GetEncoder().Writer().
+	Writer() io.Writer
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
@@ -94,6 +97,10 @@ func newLogger(l logger) logger {
 
 		depth: l.depth,
 	}
+}
+
+func (l logger) Writer() io.Writer {
+	return l.enc.Writer()
 }
 
 func (l logger) GetDepth() int {
