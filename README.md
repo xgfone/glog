@@ -66,6 +66,7 @@ type Logger interface {
 	// Ctx returns a new logger with the new contexts.
 	Cxt(ctxs ...interface{}) Logger
 
+	Writer() io.Writer // Return the underlying writer.
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
@@ -109,11 +110,32 @@ func main() {
 }
 ```
 
+Or you can use the convenient function `SimpleLogger(level, log_file_path string)`. If `log_file_path` is `""`, it will use `os.Stdout` as the output writer.
+
+```go
+package main
+
+import (
+	"os"
+
+	"github.com/xgfone/miss"
+)
+
+func main() {
+	logger, _, _ := miss.SimpleLogger("info", "")
+
+	logger.Info("don't output")
+	logger.Error("will output", "key", "value")
+	// Output:
+	// t=2018-10-25T10:46:22.0035694+08:00 lvl=ERROR key=value msg=will output
+}
+```
+
 **Notice:**
 
 `miss` is based on the level, and the log output interfaces is **`func(string, ...interface{}) error`**, the meaning of the arguments of which is decided by the encoder. See below.
 
-Furthermore, `miss` has built in a global logger, which is equal to `miss.New(miss.KvTextEncoder(os.Stdout, miss.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
+Furthermore, `miss` has built in a global logger, which is equal to `miss.New(miss.FmtTextEncoder(os.Stdout, miss.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
 ```go
 SetGlobalLogger(newLogger Logger)
 GetGlobalLogger() Logger
@@ -144,6 +166,7 @@ type LoggerWithoutError interface {
 	Encoder(encoder Encoder) LoggerWithoutError
 	Cxt(ctxs ...interface{}) LoggerWithoutError
 
+	Writer() io.Writer // Return the underlying writer.
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
@@ -182,7 +205,24 @@ child.Info("hello world", "key3", "value3")
 
 ### Encoder
 
-The core package provides three kinds of encoders: the text encoder based on Key-Value `KvTextEncoder`, the text encoder based on Format `FmtTextEncoder` and the json encoder based on Key-Value `KvStdJSONEncoder` and `KvSimpleJSONEncoder`.
+```go
+type Encoder interface {
+	// Reset the underlying writer.
+	ResetWriter(Writer)
+
+	// Return the underlying writer.
+	//
+	// Notice: only the most underlying encoder requires it. For the inner
+	// encoder, such as FilterEncoder and MultiEncoder, it may be nil.
+	// So, at the moment, the log information should be passed to the next encoder.
+	Writer() Writer
+
+	// Encode the log and write it into the underlying writer.
+	Encode(depth int, level Level, msg string, args []interface{}, ctx []interface{}) error
+}
+```
+
+The core package provides three kinds of the implementations of the encoder: the text encoder based on Key-Value `KvTextEncoder`, the text encoder based on Format `FmtTextEncoder` and the json encoder based on Key-Value `KvStdJSONEncoder` and `KvSimpleJSONEncoder`.
 
 For the encoders based on Format, the arguments of the log output function, such as `Info()`, are the same as those of `fmt.Sprintf()`. For the encoders based on Key-Value, but, the first argument is the log description, and the rests are the key-value pairs, the number of which are even, for example, `logger.Info("log description", "key1", "value1", "key2", "value2")`.
 
