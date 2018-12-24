@@ -26,7 +26,7 @@ func TestLoggerWithoutError(t *testing.T) {
 
 	errlog.Info("hello, %s", "abc")
 	logger.Info("hello, %s", "xyz")
-	if buf.String() != "{noerrorlog_test.go:13}: hello, abc\n{noerrorlog_test.go:14}: hello, xyz\n" {
+	if buf.String() != "{noerrorlog_test.go:27}: hello, abc\n{noerrorlog_test.go:28}: hello, xyz\n" {
 		t.Error(buf.String())
 	}
 

@@ -103,23 +103,30 @@ func EncoderFunc(w Writer, f FuncEncoder) Encoder {
 //         }
 //     }
 func MultiEncoder(encoders ...Encoder) Encoder {
-	return EncoderFunc(nil, func(w Writer, d int, l Level, m string, a, c []interface{}) error {
-		d++
-		var hasErr bool
-		errs := make([]error, len(encoders))
-		for i, encoder := range encoders {
-			e := encoder.Encode(d, l, m, a, c)
-			errs[i] = e
-			if e != nil {
-				hasErr = true
-			}
-		}
+	if len(encoders) == 0 {
+		panic(fmt.Errorf("multi-encoder has no encoders"))
+	} else if encoders[0] == nil {
+		panic(fmt.Errorf("the first encoder must not be nil"))
+	}
 
-		if hasErr {
-			return MultiError{errs}
-		}
-		return nil
-	})
+	return EncoderFunc(encoders[0].Writer(),
+		func(w Writer, d int, l Level, m string, a, c []interface{}) error {
+			d++
+			var hasErr bool
+			errs := make([]error, len(encoders))
+			for i, encoder := range encoders {
+				e := encoder.Encode(d, l, m, a, c)
+				errs[i] = e
+				if e != nil {
+					hasErr = true
+				}
+			}
+
+			if hasErr {
+				return MultiError{errs}
+			}
+			return nil
+		})
 }
 
 // FilterEncoder returns an encoder that only forwards logs
@@ -134,13 +141,14 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 //
 func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []interface{}) bool,
 	encoder Encoder) Encoder {
-	return EncoderFunc(nil, func(w Writer, d int, l Level, m string, args []interface{},
-		ctxs []interface{}) error {
-		if f(l, m, args, ctxs) {
-			return encoder.Encode(d+1, l, m, args, ctxs)
-		}
-		return nil
-	})
+	return EncoderFunc(encoder.Writer(),
+		func(w Writer, d int, l Level, m string, args []interface{},
+			ctxs []interface{}) error {
+			if f(l, m, args, ctxs) {
+				return encoder.Encode(d+1, l, m, args, ctxs)
+			}
+			return nil
+		})
 }
 
 // LevelFilterEncoder returns an encoder that only writes records which are
@@ -158,9 +166,10 @@ func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
 
 // NothingEncoder returns an encoder that does nothing.
 func NothingEncoder() Encoder {
-	return EncoderFunc(nil, func(w Writer, d int, l Level, m string, a, c []interface{}) error {
-		return nil
-	})
+	return EncoderFunc(DiscardWriter(),
+		func(w Writer, d int, l Level, m string, a, c []interface{}) error {
+			return nil
+		})
 }
 
 // EncoderConfig configures the encoder.
