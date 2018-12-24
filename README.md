@@ -1,8 +1,6 @@
 # glog
 
-Package glog provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance.
-
-It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
+Package glog provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance. It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
 
 See the [GoDoc](https://godoc.org/github.com/xgfone/glog).
 
