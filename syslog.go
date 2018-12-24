@@ -14,7 +14,7 @@
 
 // +build !windows,!plan9
 
-package miss
+package glog
 
 import (
 	"bytes"

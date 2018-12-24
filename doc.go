@@ -12,14 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package miss provides an flexible, extensible and powerful logging
+// Package glog provides an flexible, extensible and powerful logging
 // management tool based on the level, which has done the better balance
 // between the flexibility and the performance.
-//
-// Meaning
-//   - love: Because of loving it, I miss it.
-//   - flexible and extensible: Something can be customized according to demand, so they are missing.
-//   - no any third-party dependencies: for the core package, you don't care any other packages, including the third-party.
 //
 // Basic Principle
 //   - The better performance
@@ -72,4 +67,4 @@
 //      there is no any performance cost, but for other types,
 //      such as `int`, it maybe have once memory allocation.
 //
-package miss
+package glog

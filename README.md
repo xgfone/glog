@@ -1,20 +1,15 @@
-# miss
+# glog
 
-Package miss provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance.
-
-miss is meaning:
-1. **love**: Because of loving it, I miss it.
-2. **flexible and extensible**: Something can be customized according to demand, so they are missing.
-3. **no any third-party dependencies**: for the core package, you don't care any other packages, including the third-party.
+Package glog provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance.
 
 It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
 
-See the [GoDoc](https://godoc.org/github.com/xgfone/miss).
+See the [GoDoc](https://godoc.org/github.com/xgfone/glog).
 
 
 ## Prerequisite
 
-Now `miss` requires Go `1.9+`.
+Now `glog` requires Go `1.9+`.
 
 
 ## Basic Principle
@@ -47,7 +42,7 @@ type Logger interface {
 	//
 	// It should be used typically when you wrap the logger. For example,
 	//
-	//   logger := miss.New(miss.KvTextEncoder(os.Stdout))
+	//   logger := glog.New(glog.KvTextEncoder(os.Stdout))
 	//   logger = logger.Depth(logger.GetDepth() + 1)
 	//
 	//   func Debug(m string, args ...interface{}) { logger.Debug(m, args...) }
@@ -95,13 +90,13 @@ package main
 import (
 	"os"
 
-	"github.com/xgfone/miss"
+	"github.com/xgfone/glog"
 )
 
 func main() {
-	conf := miss.EncoderConfig{IsLevel: true, IsTime: true}
-	encoder := miss.KvTextEncoder(os.Stdout, conf)
-	logger := miss.New(encoder).Level(miss.WARN)
+	conf := glog.EncoderConfig{IsLevel: true, IsTime: true}
+	encoder := glog.KvTextEncoder(os.Stdout, conf)
+	logger := glog.New(encoder).Level(glog.WARN)
 
 	logger.Info("don't output")
 	logger.Error("will output", "key", "value")
@@ -118,11 +113,11 @@ package main
 import (
 	"os"
 
-	"github.com/xgfone/miss"
+	"github.com/xgfone/glog"
 )
 
 func main() {
-	logger, _, _ := miss.SimpleLogger("info", "")
+	logger, _, _ := glog.SimpleLogger("info", "")
 
 	logger.Info("don't output")
 	logger.Error("will output", "key", "value")
@@ -133,9 +128,9 @@ func main() {
 
 **Notice:**
 
-`miss` is based on the level, and the log output interfaces is **`func(string, ...interface{}) error`**, the meaning of the arguments of which is decided by the encoder. See below.
+`glog` is based on the level, and the log output interfaces is **`func(string, ...interface{}) error`**, the meaning of the arguments of which is decided by the encoder. See below.
 
-Furthermore, `miss` has built in a global logger, which is equal to `miss.New(miss.FmtTextEncoder(os.Stdout, miss.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
+Furthermore, `glog` has built in a global logger, which is equal to `glog.New(glog.FmtTextEncoder(os.Stdout, glog.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
 ```go
 SetGlobalLogger(newLogger Logger)
 GetGlobalLogger() Logger
@@ -227,10 +222,10 @@ The core package provides three kinds of the implementations of the encoder: the
 For the encoders based on Format, the arguments of the log output function, such as `Info()`, are the same as those of `fmt.Sprintf()`. For the encoders based on Key-Value, but, the first argument is the log description, and the rests are the key-value pairs, the number of which are even, for example, `logger.Info("log description", "key1", "value1", "key2", "value2")`.
 
 ```go
-kvlog := miss.New(miss.KvTextEncoder(os.Stdout))
+kvlog := glog.New(glog.KvTextEncoder(os.Stdout))
 kvlog.Info("creating connection", "host", "127.0.0.1", "port", 80)
 
-fmtlog := miss.New(miss.FmtTextEncoder(os.Stdout))
+fmtlog := glog.New(glog.FmtTextEncoder(os.Stdout))
 kvlog.Info("creating connection to %s:%d", "127.0.0.1", 80)
 ```
 
@@ -240,22 +235,22 @@ You can use `LevelFilterEncoder` to filter some logs by the level, for example,
 
 ```go
 encoders := ["kvtext", "kvjson"]
-textenc := miss.KvTextEncoder(os.Stdout)
-jsonenc := miss.KvSimpleJSONEncoder(os.Stderr)
+textenc := glog.KvTextEncoder(os.Stdout)
+jsonenc := glog.KvSimpleJSONEncoder(os.Stderr)
 
-textenc = miss.LevelFilterEncoder(miss.INFO, textenc)
-jsonenc = miss.LevelFilterEncoder(miss.ERROR, jsonenc)
+textenc = glog.LevelFilterEncoder(glog.INFO, textenc)
+jsonenc = glog.LevelFilterEncoder(glog.ERROR, jsonenc)
 
-logger := miss.New(miss.MultiEncoder(textenc, jsonenc))
+logger := glog.New(glog.MultiEncoder(textenc, jsonenc))
 
 if err := logger.Info("only output to stdout"); err != nil {
-    for i, e := range err.(miss.MultiError) {
+    for i, e := range err.(glog.MultiError) {
         fmt.Printf("%s: %s\n", encoders[i], e.Error())
     }
 }
 
 if err := logger.Error("output to stdout & stderr); err != nil {
-    for i, e := range err.(miss.MultiError) {
+    for i, e := range err.(glog.MultiError) {
         fmt.Printf("%s: %s\n", encoders[i], e.Error())
     }
 }
@@ -274,9 +269,9 @@ There are some the built-in writers in the core package, such as `DiscardWriter`
 For an encoder, you can output the result to more than one destination by using `MultiWriter`. For example, output the log to STDOUT and the file:
 
 ```go
-writer := miss.MultiWriter(os.Stdout, miss.FileWriter("/path/to/file"))
-encoder := miss.KvTextEncoder(writer)
-logger := miss.New(encoder)
+writer := glog.MultiWriter(os.Stdout, glog.FileWriter("/path/to/file"))
+encoder := glog.KvTextEncoder(writer)
+logger := glog.New(encoder)
 
 logger.Info("output to stdout and file")
 ```
@@ -286,7 +281,7 @@ logger.Info("output to stdout and file")
 
 If the type of a certain value is `Valuer`, the default encoder engine will call it and encode the returned result. For example,
 ```go
-logger := miss.New("hello", func(d int, l Level) (interface{}, error) { return "world", nil })
+logger := glog.New("hello", func(d int, l Level) (interface{}, error) { return "world", nil })
 ```
 or
 ```go

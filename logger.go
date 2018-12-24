@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package miss
+package glog
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ type Logger interface {
 	//
 	// It should be used typically when you wrap the logger. For example,
 	//
-	//   logger := miss.New(miss.KvTextEncoder(os.Stdout))
+	//   logger := glog.New(glog.KvTextEncoder(os.Stdout))
 	//   logger = logger.Depth(logger.GetDepth() + 1)
 	//
 	//   func Debug(m string, args ...interface{}) { logger.Debug(m, args...) }
