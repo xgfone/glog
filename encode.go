@@ -439,7 +439,10 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 	})
 }
 
-func kvJSONEncoder(std bool, w Writer, conf ...EncoderConfig) Encoder {
+// KvJSONEncoder encodes the log as the JSON and outputs it to w.
+//
+// KvStdJSONEncoder and KvSimpleJSONEncoder will use this encoder.
+func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
 	return EncoderFunc(w, func(out Writer, d int, l Level, m string, args, ctxs []interface{}) error {
@@ -486,28 +489,20 @@ func kvJSONEncoder(std bool, w Writer, conf ...EncoderConfig) Encoder {
 			maps[ToString(v1)] = v2
 		}
 
-		if std {
-			bs, err := json.Marshal(maps)
-			if err == nil {
-				_, err = w.Write(bs)
-			}
-			return err
-		}
-
-		buf := DefaultBufferPools.Get()
-		defer DefaultBufferPools.Put(buf)
-		_, err = MarshalJSON(buf, maps)
-		if err == nil {
-			_, err = w.Write(buf.Bytes())
-		}
-		return err
+		return encodeJSON(w, maps)
 	})
 }
 
 // KvStdJSONEncoder returns a new JSON encoder using the standard library,
 // json, to encode the log record.
 func KvStdJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
-	return kvJSONEncoder(true, w, conf...)
+	return KvJSONEncoder(func(out Writer, v interface{}) error {
+		bs, err := json.Marshal(v)
+		if err == nil {
+			_, err = out.Write(bs)
+		}
+		return err
+	}, w, conf...)
 }
 
 // KvSimpleJSONEncoder returns a new JSON encoder using the funcion MarshalJSON
@@ -516,5 +511,13 @@ func KvStdJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 // Except for the type of Array and Slice, it does not use the reflection.
 // So it's faster than the standard library json.
 func KvSimpleJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
-	return kvJSONEncoder(false, w, conf...)
+	return KvJSONEncoder(func(out Writer, v interface{}) error {
+		buf := DefaultBufferPools.Get()
+		_, err := MarshalJSON(buf, v)
+		if err == nil {
+			_, err = w.Write(buf.Bytes())
+		}
+		DefaultBufferPools.Put(buf)
+		return err
+	}, w, conf...)
 }
