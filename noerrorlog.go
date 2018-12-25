@@ -50,8 +50,14 @@ func newLoggerWithoutError(logger Logger, depth bool) LoggerWithoutError {
 }
 
 // ToLoggerWithoutError converts the Logger to LoggerWithoutError.
-func ToLoggerWithoutError(logger Logger) LoggerWithoutError {
-	return newLoggerWithoutError(logger, true)
+//
+// If logger is missing, it will use the global logger by default.
+func ToLoggerWithoutError(logger ...Logger) LoggerWithoutError {
+	_logger := GetGlobalLogger()
+	if len(logger) > 0 && logger[0] != nil {
+		_logger = logger[0]
+	}
+	return newLoggerWithoutError(_logger, true)
 }
 
 // ToLogger converts the LoggerWithoutError to Logger.
