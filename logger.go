@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package glog
+package logger
 
 import (
 	"fmt"
@@ -36,12 +36,12 @@ type Logger interface {
 	//
 	// It should be used typically when you wrap the logger. For example,
 	//
-	//   logger := glog.New(glog.KvTextEncoder(os.Stdout))
-	//   logger = logger.Depth(logger.GetDepth() + 1)
+	//   _logger := logger.New(logger.KvTextEncoder(os.Stdout))
+	//   _logger = _logger.Depth(_logger.GetDepth() + 1)
 	//
-	//   func Debug(m string, args ...interface{}) { logger.Debug(m, args...) }
-	//   func Info(m string, args ...interface{}) { logger.Debug(m, args...) }
-	//   func Warn(m string, args ...interface{}) { logger.Debug(m, args...) }
+	//   func Debug(m string, args ...interface{}) { _logger.Debug(m, args...) }
+	//   func Info(m string, args ...interface{}) { _logger.Debug(m, args...) }
+	//   func Warn(m string, args ...interface{}) { _logger.Debug(m, args...) }
 	//   ...
 	//
 	Depth(stackDepth int) Logger

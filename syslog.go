@@ -14,7 +14,7 @@
 
 // +build !windows,!plan9
 
-package glog
+package logger
 
 import (
 	"bytes"

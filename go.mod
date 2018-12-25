@@ -1,1 +1,1 @@
-module github.com/xgfone/glog
+module github.com/xgfone/logger

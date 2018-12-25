@@ -1,15 +1,15 @@
-# glog
+# logger
 
-Package glog provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance. It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
+Package logger provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance. It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
 
-See the [GoDoc](https://godoc.org/github.com/xgfone/glog).
+See the [GoDoc](https://godoc.org/github.com/xgfone/logger).
 
 **API has been stable.** The current is `v1`.
 
 
 ## Prerequisite
 
-Now `glog` requires Go `1.9+`.
+Now `logger` requires Go `1.9+`.
 
 
 ## Basic Principle
@@ -42,12 +42,12 @@ type Logger interface {
 	//
 	// It should be used typically when you wrap the logger. For example,
 	//
-	//   logger := glog.New(glog.KvTextEncoder(os.Stdout))
-	//   logger = logger.Depth(logger.GetDepth() + 1)
+	//   log := logger.New(logger.KvTextEncoder(os.Stdout))
+	//   log = log.Depth(log.GetDepth() + 1)
 	//
-	//   func Debug(m string, args ...interface{}) { logger.Debug(m, args...) }
-	//   func Info(m string, args ...interface{}) { logger.Debug(m, args...) }
-	//   func Warn(m string, args ...interface{}) { logger.Debug(m, args...) }
+	//   func Debug(m string, args ...interface{}) { log.Debug(m, args...) }
+	//   func Info(m string, args ...interface{}) { log.Debug(m, args...) }
+	//   func Warn(m string, args ...interface{}) { log.Debug(m, args...) }
 	//   ...
 	//
 	Depth(stackDepth int) Logger
@@ -92,16 +92,16 @@ package main
 import (
 	"os"
 
-	"github.com/xgfone/glog"
+	"github.com/xgfone/logger"
 )
 
 func main() {
-	conf := glog.EncoderConfig{IsLevel: true, IsTime: true}
-	encoder := glog.KvTextEncoder(os.Stdout, conf)
-	logger := glog.New(encoder).Level(glog.WARN)
+	conf := logger.EncoderConfig{IsLevel: true, IsTime: true}
+	encoder := logger.KvTextEncoder(os.Stdout, conf)
+	log := logger.New(encoder).Level(logger.WARN)
 
-	logger.Info("don't output")
-	logger.Error("will output", "key", "value")
+	log.Info("don't output")
+	log.Error("will output", "key", "value")
 	// Output:
 	// t=2018-10-25T10:46:22.0035694+08:00 lvl=ERROR key=value msg=will output
 }
@@ -115,14 +115,14 @@ package main
 import (
 	"os"
 
-	"github.com/xgfone/glog"
+	"github.com/xgfone/logger"
 )
 
 func main() {
-	logger, _, _ := glog.SimpleLogger("info", "")
+	log, _, _ := logger.SimpleLogger("info", "")
 
-	logger.Info("don't output")
-	logger.Error("will output", "key", "value")
+	log.Info("don't output")
+	log.Error("will output", "key", "value")
 	// Output:
 	// t=2018-10-25T10:46:22.0035694+08:00 lvl=ERROR key=value msg=will output
 }
@@ -130,9 +130,9 @@ func main() {
 
 **Notice:**
 
-`glog` is based on the level, and the log output interfaces is **`func(string, ...interface{}) error`**, the meaning of the arguments of which is decided by the encoder. See below.
+`logger` is based on the level, and the log output interfaces is **`func(string, ...interface{}) error`**, the meaning of the arguments of which is decided by the encoder. See below.
 
-Furthermore, `glog` has built in a global logger, which is equal to `glog.New(glog.FmtTextEncoder(os.Stdout, glog.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
+Furthermore, `logger` has built in a global logger, which is equal to `logger.New(logger.FmtTextEncoder(os.Stdout, logger.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
 ```go
 SetGlobalLogger(newLogger Logger)
 GetGlobalLogger() Logger
@@ -227,10 +227,10 @@ The core package provides three kinds of the implementations of the encoder: the
 For the encoders based on Format, the arguments of the log output function, such as `Info()`, are the same as those of `fmt.Sprintf()`. For the encoders based on Key-Value, but, the first argument is the log description, and the rests are the key-value pairs, the number of which are even, for example, `logger.Info("log description", "key1", "value1", "key2", "value2")`.
 
 ```go
-kvlog := glog.New(glog.KvTextEncoder(os.Stdout))
+kvlog := logger.New(logger.KvTextEncoder(os.Stdout))
 kvlog.Info("creating connection", "host", "127.0.0.1", "port", 80)
 
-fmtlog := glog.New(glog.FmtTextEncoder(os.Stdout))
+fmtlog := logger.New(logger.FmtTextEncoder(os.Stdout))
 kvlog.Info("creating connection to %s:%d", "127.0.0.1", 80)
 ```
 
@@ -240,22 +240,22 @@ You can use `LevelFilterEncoder` to filter some logs by the level, for example,
 
 ```go
 encoders := ["kvtext", "kvjson"]
-textenc := glog.KvTextEncoder(os.Stdout)
-jsonenc := glog.KvSimpleJSONEncoder(os.Stderr)
+textenc := logger.KvTextEncoder(os.Stdout)
+jsonenc := logger.KvSimpleJSONEncoder(os.Stderr)
 
-textenc = glog.LevelFilterEncoder(glog.INFO, textenc)
-jsonenc = glog.LevelFilterEncoder(glog.ERROR, jsonenc)
+textenc = logger.LevelFilterEncoder(logger.INFO, textenc)
+jsonenc = logger.LevelFilterEncoder(logger.ERROR, jsonenc)
 
-logger := glog.New(glog.MultiEncoder(textenc, jsonenc))
+log := logger.New(logger.MultiEncoder(textenc, jsonenc))
 
-if err := logger.Info("only output to stdout"); err != nil {
-    for i, e := range err.(glog.MultiError) {
+if err := log.Info("only output to stdout"); err != nil {
+    for i, e := range err.(logger.MultiError) {
         fmt.Printf("%s: %s\n", encoders[i], e.Error())
     }
 }
 
-if err := logger.Error("output to stdout & stderr); err != nil {
-    for i, e := range err.(glog.MultiError) {
+if err := log.Error("output to stdout & stderr"); err != nil {
+    for i, e := range err.(logger.MultiError) {
         fmt.Printf("%s: %s\n", encoders[i], e.Error())
     }
 }
@@ -274,11 +274,11 @@ There are some the built-in writers in the core package, such as `DiscardWriter`
 For an encoder, you can output the result to more than one destination by using `MultiWriter`. For example, output the log to STDOUT and the file:
 
 ```go
-writer := glog.MultiWriter(os.Stdout, glog.FileWriter("/path/to/file"))
-encoder := glog.KvTextEncoder(writer)
-logger := glog.New(encoder)
+writer := logger.MultiWriter(os.Stdout, logger.FileWriter("/path/to/file"))
+encoder := logger.KvTextEncoder(writer)
+log := logger.New(encoder)
 
-logger.Info("output to stdout and file")
+log.Info("output to stdout and file")
 ```
 
 
@@ -286,11 +286,11 @@ logger.Info("output to stdout and file")
 
 If the type of a certain value is `Valuer`, the default encoder engine will call it and encode the returned result. For example,
 ```go
-logger := glog.New("hello", func(d int, l Level) (interface{}, error) { return "world", nil })
+log := logger.New("hello", func(d int, l Level) (interface{}, error) { return "world", nil })
 ```
 or
 ```go
-logger.Info("hello %v", func(d int, l Level) (interface{}, error) { return "world", nil })
+log.Info("hello %v", func(d int, l Level) (interface{}, error) { return "world", nil })
 ```
 
 

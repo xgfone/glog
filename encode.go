@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package glog
+package logger
 
 import (
 	"encoding/json"
@@ -156,7 +156,7 @@ func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []inter
 //
 // For example, to only output Error/PANIC/FATAL logs:
 //
-//     glog.LevelFilterEncoder(glog.ERROR, glog.KvTextEncoder(os.Stdout))
+//     logger.LevelFilterEncoder(logger.ERROR, logger.KvTextEncoder(os.Stdout))
 //
 func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
 	return FilterEncoder(func(l Level, m string, args, ctxs []interface{}) bool {

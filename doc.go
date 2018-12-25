@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package glog provides an flexible, extensible and powerful logging
+// Package logger provides an flexible, extensible and powerful logging
 // management tool based on the level, which has done the better balance
 // between the flexibility and the performance.
 //
@@ -67,4 +67,4 @@
 //      there is no any performance cost, but for other types,
 //      such as `int`, it maybe have once memory allocation.
 //
-package glog
+package logger

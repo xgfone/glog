@@ -18,12 +18,12 @@ import (
 	"fmt"
 
 	"github.com/go-stack/stack"
-	"github.com/xgfone/glog"
+	"github.com/xgfone/logger"
 )
 
-// Caller is the same as glog.Caller(true), but removing the GOPATH prefix.
-func Caller(format ...string) glog.Valuer {
-	return func(depth int, level glog.Level) (interface{}, error) {
+// Caller is the same as logger.Caller(true), but removing the GOPATH prefix.
+func Caller(format ...string) logger.Valuer {
+	return func(depth int, level logger.Level) (interface{}, error) {
 		return fmt.Sprintf("%+v", stack.Caller(depth+1)), nil
 	}
 }
@@ -31,8 +31,8 @@ func Caller(format ...string) glog.Valuer {
 // CallerStack returns a Valuer returning the caller stack without runtime.
 //
 // The default is using "%+s:%d:%n" as the format. See github.com/go-stack/stack
-func CallerStack(format ...string) glog.Valuer {
-	return func(depth int, level glog.Level) (interface{}, error) {
+func CallerStack(format ...string) logger.Valuer {
+	return func(depth int, level logger.Level) (interface{}, error) {
 		s := stack.Trace().TrimBelow(stack.Caller(depth + 1)).TrimRuntime()
 		if len(s) > 0 {
 			return fmt.Sprintf("%+v", s), nil
