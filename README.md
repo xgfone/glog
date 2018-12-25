@@ -4,6 +4,8 @@ Package glog provides an flexible, extensible and powerful logging management to
 
 See the [GoDoc](https://godoc.org/github.com/xgfone/glog).
 
+**API has been stable.** The current is `v1`.
+
 
 ## Prerequisite
 
