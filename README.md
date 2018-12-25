@@ -59,7 +59,9 @@ type Logger interface {
 	// Ctx returns a new logger with the new contexts.
 	Cxt(ctxs ...interface{}) Logger
 
-	Writer() io.Writer // Return the underlying writer.
+	// Writer returns the underlying writer, which is the convenient function of
+	// GetEncoder().Writer().
+	Writer() io.Writer
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
@@ -140,6 +142,7 @@ WithDepth(depth int) Logger
 
 GetDepth() int
 GetLevel() Level
+GetWriter() Writer // It's the short for GetEncode().Writer().
 GetEncoder() Encoder
 
 Trace(msg string, args ...interface{}) error
@@ -159,7 +162,9 @@ type LoggerWithoutError interface {
 	Encoder(encoder Encoder) LoggerWithoutError
 	Cxt(ctxs ...interface{}) LoggerWithoutError
 
-	Writer() io.Writer // Return the underlying writer.
+	// Writer returns the underlying writer, which is the convenient function of
+	// GetEncoder().Writer().
+	Writer() io.Writer
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder

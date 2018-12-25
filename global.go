@@ -71,6 +71,11 @@ func WithDepth(depth int) Logger {
 	return root.Depth(depth)
 }
 
+// GetWriter returns the underlying writer of the global logger.
+func GetWriter() Writer {
+	return root.Writer()
+}
+
 // GetDepth returns the caller depth of the global logger.
 func GetDepth() int {
 	return root.GetDepth()
