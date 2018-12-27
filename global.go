@@ -95,49 +95,49 @@ func GetEncoder() Encoder {
 //
 // The meaning of arguments is in accordance with the encoder.
 func Trace(msg string, args ...interface{}) error {
-	return root.Trace(msg, args)
+	return root.Trace(msg, args...)
 }
 
 // Debug fires a DEBUG log.
 //
 // The meaning of arguments is in accordance with the encoder.
 func Debug(msg string, args ...interface{}) error {
-	return root.Debug(msg, args)
+	return root.Debug(msg, args...)
 }
 
 // Info fires a INFO log.
 //
 // The meaning of arguments is in accordance with the encoder.
 func Info(msg string, args ...interface{}) error {
-	return root.Info(msg, args)
+	return root.Info(msg, args...)
 }
 
 // Warn fires a WARN log.
 //
 // The meaning of arguments is in accordance with the encoder.
 func Warn(msg string, args ...interface{}) error {
-	return root.Warn(msg, args)
+	return root.Warn(msg, args...)
 }
 
 // Error fires a ERROR log.
 //
 // The meaning of arguments is in accordance with the encoder.
 func Error(msg string, args ...interface{}) error {
-	return root.Error(msg, args)
+	return root.Error(msg, args...)
 }
 
 // Panic fires a PANIC log then panic.
 //
 // The meaning of arguments is in accordance with the encoder.
 func Panic(msg string, args ...interface{}) error {
-	return root.Panic(msg, args)
+	return root.Panic(msg, args...)
 }
 
 // Fatal fires a FATAL log then terminates the program.
 //
 // The meaning of arguments is in accordance with the encoder.
 func Fatal(msg string, args ...interface{}) error {
-	return root.Fatal(msg, args)
+	return root.Fatal(msg, args...)
 }
 
 // SimpleLogger returns a new Logger with the level and the writer will use

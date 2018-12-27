@@ -428,7 +428,9 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			}
 		}
 
-		w.WriteString(fmt.Sprintf(m, args...))
+		if _, err = fmt.Fprintf(w, m, args...); err != nil {
+			return err
+		}
 
 		if !c.NotNewLine {
 			w.WriteByte('\n')
