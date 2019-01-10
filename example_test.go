@@ -66,7 +66,7 @@ func ExampleLevelFilterWriter() {
 	logger1 := New(FmtTextEncoder(os.Stdout))
 	logger1.Info("will output")
 
-	writer := LevelFilterWriter(ERROR, os.Stdout)
+	writer := LevelFilterWriter(LvlError, os.Stdout)
 	logger2 := New(FmtTextEncoder(writer))
 	logger2.Info("won't output")
 

@@ -45,13 +45,13 @@ var (
 
 // Predefine some levels
 const (
-	TRACE Level = iota // It will output the log unconditionally.
-	DEBUG
-	INFO
-	WARN
-	ERROR
-	PANIC
-	FATAL
+	LvlTrace Level = iota // It will output the log unconditionally.
+	LvlDebug
+	LvlInfo
+	LvlWarn
+	LvlError
+	LvlPanic
+	LvlFatal
 )
 
 // Level represents a level.
@@ -60,19 +60,19 @@ type Level int
 // String returns the string representation.
 func (l Level) String() string {
 	switch l {
-	case TRACE:
+	case LvlTrace:
 		return traceNameS
-	case DEBUG:
+	case LvlDebug:
 		return debugNameS
-	case INFO:
+	case LvlInfo:
 		return infoNameS
-	case WARN:
+	case LvlWarn:
 		return warnNameS
-	case ERROR:
+	case LvlError:
 		return errorNameS
-	case PANIC:
+	case LvlPanic:
 		return panicNameS
-	case FATAL:
+	case LvlFatal:
 		return fatalNameS
 	default:
 		return unknownNameS
@@ -82,19 +82,19 @@ func (l Level) String() string {
 // Bytes returns the []byte representation.
 func (l Level) Bytes() []byte {
 	switch l {
-	case TRACE:
+	case LvlTrace:
 		return traceNameB
-	case DEBUG:
+	case LvlDebug:
 		return debugNameB
-	case INFO:
+	case LvlInfo:
 		return infoNameB
-	case WARN:
+	case LvlWarn:
 		return warnNameB
-	case ERROR:
+	case LvlError:
 		return errorNameB
-	case PANIC:
+	case LvlPanic:
 		return panicNameB
-	case FATAL:
+	case LvlFatal:
 		return fatalNameB
 	default:
 		return unknownNameB
@@ -109,19 +109,19 @@ func (l Level) Bytes() []byte {
 func NameToLevel(name string) Level {
 	switch strings.ToUpper(name) {
 	case traceNameS:
-		return TRACE
+		return LvlTrace
 	case debugNameS:
-		return DEBUG
+		return LvlDebug
 	case infoNameS:
-		return INFO
+		return LvlInfo
 	case warnNameS, "WARNING":
-		return WARN
+		return LvlWarn
 	case errorNameS:
-		return ERROR
+		return LvlError
 	case panicNameS:
-		return PANIC
+		return LvlPanic
 	case fatalNameS:
-		return FATAL
+		return LvlFatal
 	default:
 		panic(fmt.Errorf("unknown level name '%s'", name))
 	}

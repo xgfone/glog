@@ -19,10 +19,10 @@ import (
 	"testing"
 )
 
-func TestLoggerWithoutError(t *testing.T) {
+func TestNoErrorLogger(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	errlog := New(FmtTextEncoder(buf)).Cxt(Caller())
-	logger := ToLoggerWithoutError(errlog)
+	logger := ToNoErrorLogger(errlog)
 
 	errlog.Info("hello, %s", "abc")
 	logger.Info("hello, %s", "xyz")

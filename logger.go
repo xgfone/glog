@@ -81,7 +81,7 @@ type logger struct {
 // New returns a new Logger.
 func New(encoder Encoder) Logger {
 	return &logger{
-		lvl: TRACE,
+		lvl: LvlTrace,
 		enc: encoder,
 		ctx: make([]interface{}, 0),
 
@@ -146,9 +146,9 @@ func (l *logger) log(level Level, msg string, args []interface{}) (err error) {
 	err = l.enc.Encode(l.depth, level, msg, args, l.ctx)
 
 	switch level {
-	case PANIC:
+	case LvlPanic:
 		panic(ErrPanic)
-	case FATAL:
+	case LvlFatal:
 		os.Exit(1)
 	}
 
@@ -156,29 +156,29 @@ func (l *logger) log(level Level, msg string, args []interface{}) (err error) {
 }
 
 func (l *logger) Trace(msg string, args ...interface{}) error {
-	return l.log(TRACE, msg, args)
+	return l.log(LvlTrace, msg, args)
 }
 
 func (l *logger) Debug(msg string, args ...interface{}) error {
-	return l.log(DEBUG, msg, args)
+	return l.log(LvlDebug, msg, args)
 }
 
 func (l *logger) Info(msg string, args ...interface{}) error {
-	return l.log(INFO, msg, args)
+	return l.log(LvlInfo, msg, args)
 }
 
 func (l *logger) Warn(msg string, args ...interface{}) error {
-	return l.log(WARN, msg, args)
+	return l.log(LvlWarn, msg, args)
 }
 
 func (l *logger) Error(msg string, args ...interface{}) error {
-	return l.log(ERROR, msg, args)
+	return l.log(LvlError, msg, args)
 }
 
 func (l *logger) Panic(msg string, args ...interface{}) error {
-	return l.log(PANIC, msg, args)
+	return l.log(LvlPanic, msg, args)
 }
 
 func (l *logger) Fatal(msg string, args ...interface{}) error {
-	return l.log(FATAL, msg, args)
+	return l.log(LvlFatal, msg, args)
 }

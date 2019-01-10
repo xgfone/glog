@@ -156,13 +156,13 @@ Panic(msg string, args ...interface{}) error
 Fatal(msg string, args ...interface{}) error
 ```
 
-If you prefer the logger without the error, you maybe use `LoggerWithoutError` converted by `ToLoggerWithoutError(Logger)` from `Logger` as follow:
+If you prefer the logger without the error, you maybe use `NoErrorLogger` converted by `ToNoErrorLogger(Logger)` from `Logger` as follow:
 ```go
-type LoggerWithoutError interface {
-	Depth(stackDepth int) LoggerWithoutError
-	Level(level Level) LoggerWithoutError
-	Encoder(encoder Encoder) LoggerWithoutError
-	Cxt(ctxs ...interface{}) LoggerWithoutError
+type NoErrorLogger interface {
+	Depth(stackDepth int) NoErrorLogger
+	Level(level Level) NoErrorLogger
+	Encoder(encoder Encoder) NoErrorLogger
+	Cxt(ctxs ...interface{}) NoErrorLogger
 
 	// Writer returns the underlying writer, which is the convenient function of
 	// GetEncoder().Writer().
