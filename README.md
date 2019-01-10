@@ -156,6 +156,9 @@ Panic(msg string, args ...interface{}) error
 Fatal(msg string, args ...interface{}) error
 ```
 
+**Suggestion:**
+Use the global logger instead of the customized logger directly, such as `logger.Trace()`, `logger.Debug()`, `logger.Info()`, `logger.Warn()`, `logger.Error()`, `logger.Panic()`, `logger.Fatal()`. If you need to use a new logger, you can set the global logger to it by `logger.SetGlobalLogger()` on initializating the program.
+
 If you prefer the logger without the error, you maybe use `NoErrorLogger` converted by `ToNoErrorLogger(Logger)` from `Logger` as follow:
 ```go
 type NoErrorLogger interface {
