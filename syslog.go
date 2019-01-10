@@ -34,15 +34,15 @@ func (s syslogWriter) Write(p []byte) (int, error) {
 func (s syslogWriter) WriteLevel(level Level, p []byte) (n int, err error) {
 	v := string(bytes.TrimSpace(p))
 	switch level {
-	case FATAL:
+	case LvlFatal:
 		err = s.w.Emerg(v)
-	case PANIC:
+	case LvlPanic:
 		err = s.w.Crit(v)
-	case ERROR:
+	case LvlError:
 		err = s.w.Err(v)
-	case WARN:
+	case LvlWarn:
 		err = s.w.Warning(v)
-	case INFO:
+	case LvlInfo:
 		err = s.w.Info(v)
 	default:
 		err = s.w.Debug(v)

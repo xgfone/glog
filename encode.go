@@ -136,7 +136,7 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 //
 //    FilterEncoder(func(lvl Level, msg string, args []interface{},
 //                       ctxs []interface{}) bool {
-//        return level >= ERROR
+//        return level >= LvlError
 //    })
 //
 func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []interface{}) bool,
@@ -154,9 +154,9 @@ func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []inter
 // LevelFilterEncoder returns an encoder that only writes records which are
 // greater than the given verbosity level to the wrapped Handler.
 //
-// For example, to only output Error/PANIC/FATAL logs:
+// For example, to only output ERROR/PANIC/FATAL logs:
 //
-//     logger.LevelFilterEncoder(logger.ERROR, logger.KvTextEncoder(os.Stdout))
+//     logger.LevelFilterEncoder(logger.LvlError, logger.KvTextEncoder(os.Stdout))
 //
 func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
 	return FilterEncoder(func(l Level, m string, args, ctxs []interface{}) bool {
