@@ -4,7 +4,7 @@ Package logger provides an flexible, extensible and powerful logging management 
 
 See the [GoDoc](https://godoc.org/github.com/xgfone/logger).
 
-**API has been stable.** The current is `v1`.
+**API has been stable.** The current is `v2`.
 
 
 ## Prerequisite
@@ -98,7 +98,7 @@ import (
 func main() {
 	conf := logger.EncoderConfig{IsLevel: true, IsTime: true}
 	encoder := logger.KvTextEncoder(os.Stdout, conf)
-	log := logger.New(encoder).Level(logger.WARN)
+	log := logger.New(encoder).Level(logger.LvlWarn)
 
 	log.Info("don't output")
 	log.Error("will output", "key", "value")
@@ -243,8 +243,8 @@ encoders := ["kvtext", "kvjson"]
 textenc := logger.KvTextEncoder(os.Stdout)
 jsonenc := logger.KvSimpleJSONEncoder(os.Stderr)
 
-textenc = logger.LevelFilterEncoder(logger.INFO, textenc)
-jsonenc = logger.LevelFilterEncoder(logger.ERROR, jsonenc)
+textenc = logger.LevelFilterEncoder(logger.LvlInfo, textenc)
+jsonenc = logger.LevelFilterEncoder(logger.LvlError, jsonenc)
 
 log := logger.New(logger.MultiEncoder(textenc, jsonenc))
 
