@@ -40,7 +40,7 @@ var (
 // Support the types:
 //   nil
 //   bool
-//   string
+//   string | error
 //   float32
 //   float64
 //   int
@@ -56,6 +56,7 @@ var (
 //   time.Time
 //   map[string]interface{} for json object
 //   json.Marshaler
+//   fmt.Stringer
 //   Array or Slice of the type above
 func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 	switch _v := v.(type) {
@@ -68,6 +69,10 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 		return w.Write(FalseBytes)
 	case string:
 		return WriteString(w, _v, true)
+	case error:
+		return WriteString(w, _v.Error(), true)
+	case fmt.Stringer:
+		return WriteString(w, _v.String(), true)
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64,
 		float32, float64:
 	case map[string]interface{}:
@@ -202,7 +207,29 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 	return w.Write(ToBytes(v))
 }
 
-// MarshalKvJSON marshals
+// MarshalKvJSON marshals some key-value pairs as JSON into w.
+//
+// Notice: the key must be string, and the value may be one of the following:
+//   nil
+//   bool
+//   string | error
+//   float32
+//   float64
+//   int
+//   int8
+//   int16
+//   int32
+//   int64
+//   uint
+//   uint8
+//   uint16
+//   uint32
+//   uint64
+//   time.Time
+//   map[string]interface{} for json object
+//   json.Marshaler
+//   fmt.Stringer
+//   Array or Slice of the type above
 func MarshalKvJSON(w io.Writer, args ...interface{}) (n int, err error) {
 	_len := len(args)
 	if _len == 0 {
@@ -263,6 +290,16 @@ func MarshalKvJSON(w io.Writer, args ...interface{}) (n int, err error) {
 			n += m
 		case string:
 			if m, err = WriteString(w, v, true); err != nil {
+				return
+			}
+			n += m
+		case error:
+			if m, err = WriteString(w, v.Error(), true); err != nil {
+				return
+			}
+			n += m
+		case fmt.Stringer:
+			if m, err = WriteString(w, v.String(), true); err != nil {
 				return
 			}
 			n += m
