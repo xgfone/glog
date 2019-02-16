@@ -155,3 +155,99 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 
 	return w.Write(ToBytes(v))
 }
+
+// MarshalKvJSON marshals
+func MarshalKvJSON(w io.Writer, args ...interface{}) (n int, err error) {
+	_len := len(args)
+	if _len == 0 {
+		return
+	} else if _len%2 == 1 {
+		return 0, fmt.Errorf("args must be even")
+	}
+
+	var m int
+
+	// Write {
+	if m, err = w.Write(LeftBraceBytes); err != nil {
+		return
+	}
+	n += m
+
+	for i, count := 0, 0; i < _len; i += 2 {
+		// Write comma
+		if count > 0 {
+			if m, err = w.Write(CommaBytes); err != nil {
+				return
+			}
+			n += m
+		}
+		count++
+
+		// Write Key
+		key, ok := args[i].(string)
+		if !ok {
+			return 0, fmt.Errorf("the %dth key is not string", i/2)
+		}
+		if m, err = WriteString(w, key, true); err != nil {
+			return
+		}
+		n += m
+
+		// Write :
+		if m, err = WriteString(w, ":"); err != nil {
+			return
+		}
+		n += m
+
+		// Write Value
+		switch v := args[i+1].(type) {
+		case nil:
+			if m, err = w.Write(NullBytes); err != nil {
+				return
+			}
+			n += m
+		case bool:
+			if v {
+				m, err = w.Write(TrueBytes)
+			} else {
+				m, err = w.Write(FalseBytes)
+			}
+			if err != nil {
+				return
+			}
+			n += m
+		case string:
+			if m, err = WriteString(w, v, true); err != nil {
+				return
+			}
+			n += m
+		case int, int8, int16, int32, int64,
+			uint, uint8, uint16, uint32, uint64,
+			float32, float64:
+			if m, err = w.Write(ToBytes(v)); err != nil {
+				return
+			}
+			n += m
+		case json.Marshaler:
+			var bs []byte
+			if bs, err = v.MarshalJSON(); err != nil {
+				return
+			} else if m, err = w.Write(bs); err != nil {
+				return
+			}
+			n += m
+		default: // For array, slice or map
+			if m, err = MarshalJSON(w, v); err != nil {
+				return
+			}
+			n += m
+		}
+	}
+
+	// Write }
+	if m, err = w.Write(RightBraceBytes); err != nil {
+		return
+	}
+	n += m
+	return
+}
