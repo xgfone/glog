@@ -119,6 +119,52 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 			return 0, err
 		}
 		return w.Write(bs)
+	case []string: // Optimzie []string
+		if n, err = w.Write(LeftBracketBytes); err != nil {
+			return n, err
+		}
+
+		total := n
+		for i, _len := 0, len(_v); i < _len; i++ {
+			if i > 0 {
+				if n, err = w.Write(CommaBytes); err != nil {
+					return total, err
+				}
+				total += n
+			}
+
+			if n, err = WriteString(w, _v[i], true); err != nil {
+				return total, err
+			}
+			total += n
+		}
+
+		if n, err = w.Write(RightBracketBytes); err != nil {
+			return total, err
+		}
+	case []interface{}: // Optimzie []interface{}
+		if n, err = w.Write(LeftBracketBytes); err != nil {
+			return n, err
+		}
+
+		total := n
+		for i, _len := 0, len(_v); i < _len; i++ {
+			if i > 0 {
+				if n, err = w.Write(CommaBytes); err != nil {
+					return total, err
+				}
+				total += n
+			}
+
+			if n, err = MarshalJSON(w, _v[i]); err != nil {
+				return total, err
+			}
+			total += n
+		}
+
+		if n, err = w.Write(RightBracketBytes); err != nil {
+			return total, err
+		}
 	default:
 		// Check whether it's an array or slice.
 		value := reflect.ValueOf(v)
@@ -173,15 +219,14 @@ func MarshalKvJSON(w io.Writer, args ...interface{}) (n int, err error) {
 	}
 	n += m
 
-	for i, count := 0, 0; i < _len; i += 2 {
+	for i := 0; i < _len; i += 2 {
 		// Write comma
-		if count > 0 {
+		if i > 0 {
 			if m, err = w.Write(CommaBytes); err != nil {
 				return
 			}
 			n += m
 		}
-		count++
 
 		// Write Key
 		key, ok := args[i].(string)

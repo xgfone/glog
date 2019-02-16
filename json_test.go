@@ -56,9 +56,9 @@ func ExampleMarshalJSON() {
 
 func ExampleMarshalKvJSON() {
 	buf := bytes.NewBuffer(nil)
-	MarshalKvJSON(buf, "nil", nil, "bool", true, "string", "abc", "int", 123, "float", 1.23, "slice", []interface{}{"abc", 123}, "intslice", []int{1, 2, 3}, "map", map[string]interface{}{"key": "xyz"})
+	MarshalKvJSON(buf, "nil", nil, "bool", true, "string", "abc", "int", 123, "float", 1.23, "slice", []interface{}{"abc", 123}, "sslice", []string{"a", "b", "c"}, "map", map[string]interface{}{"key": "xyz"})
 
 	fmt.Println(buf.String())
 	// Output:
-	// {"nil":null,"bool":true,"string":"abc","int":123,"float":1.23,"slice":["abc",123],"intslice":[1,2,3],"map":{"key":"xyz"}}
+	// {"nil":null,"bool":true,"string":"abc","int":123,"float":1.23,"slice":["abc",123],"sslice":["a","b","c"],"map":{"key":"xyz"}}
 }
