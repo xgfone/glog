@@ -58,6 +58,8 @@ var (
 //   json.Marshaler
 //   fmt.Stringer
 //   Array or Slice of the type above
+//
+// For other types, it will use json.Marshal() to marshal it.
 func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 	switch _v := v.(type) {
 	case nil:
@@ -175,7 +177,11 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 		value := reflect.ValueOf(v)
 		kind := value.Kind()
 		if kind != reflect.Array && kind != reflect.Slice {
-			return 0, fmt.Errorf("unknown type '%s'", value.Type().String())
+			data, err := json.Marshal(v)
+			if err != nil {
+				return 0, err
+			}
+			return w.Write(data)
 		}
 
 		if n, err = w.Write(LeftBracketBytes); err != nil {
