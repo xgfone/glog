@@ -30,6 +30,11 @@ var fileFlag = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 // We do it in order to collect the writers to show together in godoc.
 type Writer = io.Writer
 
+// Flusher is used to flush the data to the underlying storage.
+type Flusher interface {
+	Flush() error
+}
+
 // LevelWriter supports not only Writer but also WriteLevel.
 type LevelWriter interface {
 	Writer
@@ -255,6 +260,18 @@ func (m muster) NetWriter(network, addr string) (Writer, io.Closer) {
 // It is thread-safe for concurrent writes.
 //
 // The default permission of the log file is 0644.
+//
+// Notice: the file writer has also implemented the Flusher interface,
+// so you can do it as follow:
+//
+//     file, _ := SizedRotatingFileWriter("file.log", 1024*1024*1024, 30)
+//
+//     // Write the data ...
+//     file.Write([]byte("log data"))
+//
+//     // Synchronize the data to the underlying disk.
+//     file.(Flusher).Flush()
+//
 func SizedRotatingFileWriter(filename string, size, count int,
 	mode ...os.FileMode) (io.WriteCloser, error) {
 
@@ -293,6 +310,10 @@ func (f *sizedRotatingFile) Close() (err error) {
 	err = f.close()
 	f.Unlock()
 	return
+}
+
+func (f *sizedRotatingFile) Flush() error {
+	return f.file.Sync()
 }
 
 func (f *sizedRotatingFile) Write(data []byte) (n int, err error) {
