@@ -54,7 +54,7 @@ var (
 //   uint32
 //   uint64
 //   time.Time
-//   map[string]interface{} for json object
+//   map[string]interface{} or map[string]string for json object
 //   json.Marshaler
 //   fmt.Stringer
 //   Array or Slice of the type above
@@ -108,6 +108,49 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 
 			// Write value
 			if n, err = MarshalJSON(w, value); err != nil {
+				return total, err
+			}
+			total += n
+
+			count++
+		}
+
+		// Write }
+		if n, err = w.Write(RightBraceBytes); err != nil {
+			return n, err
+		}
+		return total + 1, nil
+	case map[string]string: // Optimize for map[string]string
+		// Write {
+		if n, err = w.Write(LeftBraceBytes); err != nil {
+			return n, err
+		}
+		total := n
+
+		count := 0
+		for key, value := range _v {
+			if count > 0 {
+				// Write comma
+				if n, err = w.Write(CommaBytes); err != nil {
+					return total, err
+				}
+				total += n
+			}
+
+			// Write key
+			if n, err = WriteString(w, key, true); err != nil {
+				return total, err
+			}
+			total += n
+
+			// Write :
+			if n, err = w.Write(ColonBytes); err != nil {
+				return total, err
+			}
+			total += n
+
+			// Write value
+			if n, err = WriteString(w, value, true); err != nil {
 				return total, err
 			}
 			total += n
@@ -232,7 +275,7 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 //   uint32
 //   uint64
 //   time.Time
-//   map[string]interface{} for json object
+//   map[string]interface{} or map[string]string for json object
 //   json.Marshaler
 //   fmt.Stringer
 //   Array or Slice of the type above
