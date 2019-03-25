@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
 )
 
 // ErrPanic will be used when firing a PANIC level log.
@@ -28,8 +29,10 @@ const DefaultLoggerDepth = 2
 
 // Logger is a logger interface.
 type Logger interface {
-	// Depth returns a new Logger with the stack depth.
-	//
+	// Some methods to return a new Logger with the argument and the current state.
+	Level(level Level) Logger
+	Encoder(encoder Encoder) Logger
+	Cxt(ctxs ...interface{}) Logger
 	// stackDepth is the calling depth of the logger, which will be passed to
 	// the encoder. The default depth is the global variable DefaultLoggerDepth
 	// for the new Logger.
@@ -46,21 +49,13 @@ type Logger interface {
 	//
 	Depth(stackDepth int) Logger
 
-	// Level returns a new Logger with the new level.
-	Level(level Level) Logger
-
-	// Encoder returns a new logger with the new encoder.
-	Encoder(encoder Encoder) Logger
-
-	// Ctx returns a new logger with the new contexts.
-	Cxt(ctxs ...interface{}) Logger
-
-	// Writer is the convenient function of GetEncoder().Writer().
-	Writer() io.Writer
+	// Some methods to return the inner state.
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
+	Writer() io.Writer // [DEPRECATED] Please use GetEncoder().Writer().
 
+	// Some Logs based on the level.
 	Trace(msg string, args ...interface{}) error
 	Debug(msg string, args ...interface{}) error
 	Info(msg string, args ...interface{}) error
@@ -68,6 +63,17 @@ type Logger interface {
 	Error(msg string, args ...interface{}) error
 	Panic(msg string, args ...interface{}) error
 	Fatal(msg string, args ...interface{}) error
+}
+
+// LoggerSetter is an interface of the setter of Logger, which modify
+// the inner state of Logger, not returning a new Logger.
+//
+// Notice: in order to be compatible, they are not merged into Logger.
+// And the builtin implementation has implemented this interface.
+type LoggerSetter interface {
+	SetDepth(depth int)
+	SetLevel(level Level) // It should be thread-safe.
+	SetEncoder(encoder Encoder)
 }
 
 type logger struct {
@@ -93,7 +99,7 @@ func newLogger(l *logger) *logger {
 	return &logger{
 		enc: l.enc,
 		ctx: l.ctx,
-		lvl: l.lvl,
+		lvl: l.GetLevel(),
 
 		depth: l.depth,
 	}
@@ -108,11 +114,23 @@ func (l *logger) GetDepth() int {
 }
 
 func (l *logger) GetLevel() Level {
-	return l.lvl
+	return Level(atomic.LoadInt32((*int32)(&l.lvl)))
 }
 
 func (l *logger) GetEncoder() Encoder {
 	return l.enc
+}
+
+func (l *logger) SetDepth(depth int) {
+	l.depth = depth
+}
+
+func (l *logger) SetLevel(level Level) {
+	atomic.StoreInt32((*int32)(&l.lvl), int32(level))
+}
+
+func (l *logger) SetEncoder(encoder Encoder) {
+	l.enc = encoder
 }
 
 func (l *logger) Depth(depth int) Logger {
@@ -140,7 +158,7 @@ func (l *logger) Cxt(ctxs ...interface{}) Logger {
 }
 
 func (l *logger) log(level Level, msg string, args []interface{}) (err error) {
-	if level < l.lvl {
+	if level < l.GetLevel() {
 		return nil
 	}
 	err = l.enc.Encode(l.depth, level, msg, args, l.ctx)

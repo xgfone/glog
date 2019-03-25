@@ -55,7 +55,7 @@ const (
 )
 
 // Level represents a level.
-type Level int
+type Level int32
 
 // String returns the string representation.
 func (l Level) String() string {

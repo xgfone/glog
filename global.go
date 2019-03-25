@@ -73,7 +73,7 @@ func WithDepth(depth int) Logger {
 
 // GetWriter returns the underlying writer of the global logger.
 func GetWriter() Writer {
-	return root.Writer()
+	return root.GetEncoder().Writer()
 }
 
 // GetDepth returns the caller depth of the global logger.
@@ -89,6 +89,21 @@ func GetLevel() Level {
 // GetEncoder returns the encoder of the global logger.
 func GetEncoder() Encoder {
 	return root.GetEncoder()
+}
+
+// SetDepth sets the caller depth of the global logger.
+func SetDepth(depth int) {
+	root.(LoggerSetter).SetDepth(depth)
+}
+
+// SetLevel sets the level of the global logger.
+func SetLevel(level Level) {
+	root.(LoggerSetter).SetLevel(level)
+}
+
+// SetEncoder sets the encoder of the global logger.
+func SetEncoder(encoder Encoder) {
+	root.(LoggerSetter).SetEncoder(encoder)
 }
 
 // Trace fires a TRACE log.
