@@ -93,17 +93,17 @@ func GetEncoder() Encoder {
 
 // SetDepth sets the caller depth of the global logger.
 func SetDepth(depth int) {
-	root.(LoggerSetter).SetDepth(depth)
+	root.(Setter).SetDepth(depth)
 }
 
 // SetLevel sets the level of the global logger.
 func SetLevel(level Level) {
-	root.(LoggerSetter).SetLevel(level)
+	root.(Setter).SetLevel(level)
 }
 
 // SetEncoder sets the encoder of the global logger.
 func SetEncoder(encoder Encoder) {
-	root.(LoggerSetter).SetEncoder(encoder)
+	root.(Setter).SetEncoder(encoder)
 }
 
 // Trace fires a TRACE log.

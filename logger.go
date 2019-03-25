@@ -27,7 +27,7 @@ var ErrPanic = fmt.Errorf("the panic level log")
 // DefaultLoggerDepth is the depth for the default implementing logger.
 const DefaultLoggerDepth = 2
 
-// Logger is a logger interface.
+// Logger is an immutable logger interface.
 type Logger interface {
 	// Some methods to return a new Logger with the argument and the current state.
 	Level(level Level) Logger
@@ -65,12 +65,13 @@ type Logger interface {
 	Fatal(msg string, args ...interface{}) error
 }
 
-// LoggerSetter is an interface of the setter of Logger, which modify
+// Setter is an interface of the setter of Logger, which modify
 // the inner state of Logger, not returning a new Logger.
 //
-// Notice: in order to be compatible, they are not merged into Logger.
-// And the builtin implementation has implemented this interface.
-type LoggerSetter interface {
+// This interface indicates a mutable Logger.
+//
+// Notice: the builtin implementation has implemented this interface.
+type Setter interface {
 	SetDepth(depth int)
 	SetLevel(level Level) // It should be thread-safe.
 	SetEncoder(encoder Encoder)
