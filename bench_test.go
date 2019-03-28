@@ -16,10 +16,12 @@ package logger
 
 import (
 	"testing"
+
+	"github.com/xgfone/logger/utils"
 )
 
 func BenchmarkWriteIntoBuffer(b *testing.B) {
-	bufPools := NewBufferPool()
+	bufPools := utils.NewBufferPool()
 	bufPools.Put(bufPools.Get())
 
 	b.ResetTimer()

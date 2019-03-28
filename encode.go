@@ -18,6 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/xgfone/logger/utils"
 )
 
 // The separators of the KV and the KV pair.
@@ -287,13 +289,13 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 		var err error
 		var v interface{}
 		var sep bool
-		w := DefaultBufferPools.Get()
-		defer DefaultBufferPools.Put(w)
+		w := utils.DefaultBufferPools.Get()
+		defer utils.DefaultBufferPools.Put(w)
 
 		if c.IsTime {
 			w.WriteByte('t')
 			w.WriteString(c.TextKVSep)
-			w.Write(encodeNowTime(c.TimeLayout, c.IsTimeUTC))
+			w.Write(utils.EncodeNowTime(c.TimeLayout, c.IsTimeUTC))
 			sep = true
 		}
 
@@ -380,11 +382,11 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 		d++
 		var err error
 		var sep bool
-		w := DefaultBufferPools.Get()
-		defer DefaultBufferPools.Put(w)
+		w := utils.DefaultBufferPools.Get()
+		defer utils.DefaultBufferPools.Put(w)
 
 		if c.IsTime {
-			w.Write(encodeNowTime(c.TimeLayout, c.IsTimeUTC))
+			w.Write(utils.EncodeNowTime(c.TimeLayout, c.IsTimeUTC))
 			sep = true
 		}
 
@@ -514,12 +516,12 @@ func KvStdJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 // So it's faster than the standard library json.
 func KvSimpleJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 	return KvJSONEncoder(func(out Writer, v interface{}) error {
-		buf := DefaultBufferPools.Get()
+		buf := utils.DefaultBufferPools.Get()
 		_, err := MarshalJSON(buf, v)
 		if err == nil {
 			_, err = w.Write(buf.Bytes())
 		}
-		DefaultBufferPools.Put(buf)
+		utils.DefaultBufferPools.Put(buf)
 		return err
 	}, w, conf...)
 }

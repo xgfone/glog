@@ -1,4 +1,4 @@
-// Copyright 2018 xgfone
+// Copyright 2019 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,24 +14,29 @@
 
 package logger
 
-import "testing"
+import "fmt"
 
-func BenchmarkBytesPool(b *testing.B) {
-	bp := NewBytesPool()
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			bp.Put(bp.Get())
-		}
-	})
+// MultiError represents more than one error.
+type MultiError struct {
+	errs []error
 }
 
-func BenchmarkBufferPool(b *testing.B) {
-	bp := NewBufferPool()
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			bp.Put(bp.Get())
+func (m MultiError) Error() string {
+	switch len(m.errs) {
+	case 0:
+		return ""
+	case 1:
+		return m.errs[0].Error()
+	default:
+		s := m.errs[0].Error()
+		for _, e := range m.errs[1:] {
+			s = fmt.Sprintf("%s > %s", s, e.Error())
 		}
-	})
+		return s
+	}
+}
+
+// Errors returns a list of errors.
+func (m MultiError) Errors() []error {
+	return m.errs
 }

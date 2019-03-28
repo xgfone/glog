@@ -1,4 +1,4 @@
-// Copyright 2018 xgfone
+// Copyright 2019 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logger
+package utils
 
 import (
 	"bytes"
@@ -76,31 +76,6 @@ func WriteString(w io.Writer, s string, quote ...bool) (n int, err error) {
 	}
 
 	return len(s), nil
-}
-
-// MultiError represents more than one error.
-type MultiError struct {
-	errs []error
-}
-
-func (m MultiError) Error() string {
-	switch len(m.errs) {
-	case 0:
-		return ""
-	case 1:
-		return m.errs[0].Error()
-	default:
-		s := m.errs[0].Error()
-		for _, e := range m.errs[1:] {
-			s = fmt.Sprintf("%s > %s", s, e.Error())
-		}
-		return s
-	}
-}
-
-// Errors returns a list of errors.
-func (m MultiError) Errors() []error {
-	return m.errs
 }
 
 // ToBytesErr encodes a value to []byte.
@@ -170,7 +145,7 @@ func ToBytesErr(i interface{}, fmtSprintf ...bool) ([]byte, error) {
 	case uint64:
 		return strconv.AppendUint(make([]byte, 0, 20), v, 10), nil
 	case time.Time:
-		return encodeTime(v, time.RFC3339Nano), nil
+		return EncodeTime(v, time.RFC3339Nano), nil
 	case Byter:
 		return v.Bytes(), nil
 	case MarshalText:
@@ -239,39 +214,16 @@ func WriteIntoBuffer(w *bytes.Buffer, i interface{}, fmtSprintf ...bool) error {
 	return nil
 }
 
-func encodeNowTime(layout string, utc ...bool) []byte {
-	return encodeTime(time.Now(), layout, utc...)
+// EncodeNowTime is the same as EncodeTime, but encodes the now time.
+func EncodeNowTime(layout string, utc ...bool) []byte {
+	return EncodeTime(time.Now(), layout, utc...)
 }
 
-func encodeTime(t time.Time, layout string, utc ...bool) []byte {
+// EncodeTime encodes the time t to []byte, which will convrt it to UTC
+// if utc is true.
+func EncodeTime(t time.Time, layout string, utc ...bool) []byte {
 	if len(utc) > 0 && utc[0] {
 		t = t.UTC()
 	}
 	return t.AppendFormat(make([]byte, 0, 36), layout)
-}
-
-// Range returns a integer range between start and stop, which progressively
-// increase or descrease by step.
-//
-// If step is positive, r[i] = start + step*i when i>0 and r[i]<stop.
-//
-// If step is negative, r[i] = start + step*i but when i>0 and r[i]>stop.
-//
-// If step is 0, it will panic.
-func Range(start, stop, step int) (r []int) {
-	if step > 0 {
-		for start < stop {
-			r = append(r, start)
-			start += step
-		}
-		return
-	} else if step < 0 {
-		for start > stop {
-			r = append(r, start)
-			start += step
-		}
-		return
-	}
-
-	panic(fmt.Errorf("The step must not be 0"))
 }
