@@ -7,7 +7,7 @@ import (
 
 func TestPrintfer(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
-	log := GetGlobalLogger().Encoder(FmtTextEncoder(buf))
+	log := GetGlobalLogger().WithEncoder(FmtTextEncoder(buf))
 	plog := ToPrintfer(log)
 	plog.Printf("printf: %s", "abc")
 

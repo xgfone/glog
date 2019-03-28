@@ -14,21 +14,8 @@
 
 package logger
 
-import "io"
-
-// NoErrorLogger is equal to Logger, but not returning the error.
-type NoErrorLogger interface {
-	Depth(stackDepth int) NoErrorLogger
-	Level(level Level) NoErrorLogger
-	Encoder(encoder Encoder) NoErrorLogger
-	Cxt(ctxs ...interface{}) NoErrorLogger
-
-	// Writer is the convenient function of GetEncoder().Writer().
-	Writer() io.Writer
-	GetDepth() int
-	GetLevel() Level
-	GetEncoder() Encoder
-
+// LogOutputterWithoutError is the same as LogOutputter, but not return an error.
+type LogOutputterWithoutError interface {
 	Trace(msg string, args ...interface{})
 	Debug(msg string, args ...interface{})
 	Info(msg string, args ...interface{})
@@ -38,13 +25,25 @@ type NoErrorLogger interface {
 	Fatal(msg string, args ...interface{})
 }
 
+// NoErrorLogger is equal to Logger, but not returning the error.
+type NoErrorLogger interface {
+	LogGetter
+	LogSetter
+	LogOutputterWithoutError
+
+	WithDepth(stackDepth int) NoErrorLogger
+	WithLevel(level Level) NoErrorLogger
+	WithEncoder(encoder Encoder) NoErrorLogger
+	WithCxt(ctxs ...interface{}) NoErrorLogger
+}
+
 type loggerWithoutError struct {
 	Logger
 }
 
 func newNoErrorLogger(logger Logger, depth bool) NoErrorLogger {
 	if depth {
-		return loggerWithoutError{Logger: logger.Depth(logger.GetDepth() + 1)}
+		return loggerWithoutError{Logger: logger.WithDepth(logger.GetDepth() + 1)}
 	}
 	return loggerWithoutError{Logger: logger}
 }
@@ -65,23 +64,23 @@ func ToNoErrorLogger(logger ...Logger) NoErrorLogger {
 // Notice: NoErrorLogger must be the built-in implementation
 // returned by ToNoErrorLogger.
 func ToLogger(logger NoErrorLogger) Logger {
-	return logger.(loggerWithoutError).Logger.Depth(logger.GetDepth() - 1)
+	return logger.(loggerWithoutError).Logger.WithDepth(logger.GetDepth() - 1)
 }
 
-func (l loggerWithoutError) Depth(stackDepth int) NoErrorLogger {
-	return newNoErrorLogger(l.Logger.Depth(stackDepth), false)
+func (l loggerWithoutError) WithDepth(stackDepth int) NoErrorLogger {
+	return newNoErrorLogger(l.Logger.WithDepth(stackDepth), false)
 }
 
-func (l loggerWithoutError) Level(level Level) NoErrorLogger {
-	return newNoErrorLogger(l.Logger.Level(level), false)
+func (l loggerWithoutError) WithLevel(level Level) NoErrorLogger {
+	return newNoErrorLogger(l.Logger.WithLevel(level), false)
 }
 
-func (l loggerWithoutError) Encoder(encoder Encoder) NoErrorLogger {
-	return newNoErrorLogger(l.Logger.Encoder(encoder), false)
+func (l loggerWithoutError) WithEncoder(encoder Encoder) NoErrorLogger {
+	return newNoErrorLogger(l.Logger.WithEncoder(encoder), false)
 }
 
-func (l loggerWithoutError) Cxt(ctxs ...interface{}) NoErrorLogger {
-	return newNoErrorLogger(l.Logger.Cxt(ctxs...), false)
+func (l loggerWithoutError) WithCxt(ctxs ...interface{}) NoErrorLogger {
+	return newNoErrorLogger(l.Logger.WithCxt(ctxs...), false)
 }
 
 func (l loggerWithoutError) Trace(msg string, args ...interface{}) {

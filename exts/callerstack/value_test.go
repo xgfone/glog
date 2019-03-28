@@ -8,7 +8,7 @@ import (
 )
 
 func TestCaller(t *testing.T) {
-	if v, err := Caller()(0, logger.LvlDebug); err != nil {
+	if v, err := Caller()(logger.Record{Lvl: logger.LvlDebug}); err != nil {
 		t.Error(err)
 	} else if v == nil {
 		t.Fail()
@@ -18,7 +18,7 @@ func TestCaller(t *testing.T) {
 }
 
 func TestCallerStack(t *testing.T) {
-	if v, err := CallerStack()(0, logger.LvlDebug); err != nil {
+	if v, err := CallerStack()(logger.Record{Lvl: logger.LvlDebug}); err != nil {
 		t.Error(err)
 	} else if v == nil {
 		t.Fail()

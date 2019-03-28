@@ -1,4 +1,4 @@
-// Copyright 2019 xgfone
+// Copyright 2018 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,38 +14,18 @@
 
 package logger
 
-import (
-	"fmt"
+// Record stands for a log record.
+type Record struct {
+	// Depth is the depth of the caller.
+	Depth int
 
-	"github.com/xgfone/logger/utils"
-)
+	// Lvl is the level of the emitted log.
+	Lvl Level
 
-// Re-export some errors.
-var (
-	ErrType = utils.ErrType
-)
+	// Msg and Args are the arguments of the emitted log.
+	Msg  string
+	Args []interface{}
 
-// MultiError represents more than one error.
-type MultiError struct {
-	errs []error
-}
-
-func (m MultiError) Error() string {
-	switch len(m.errs) {
-	case 0:
-		return ""
-	case 1:
-		return m.errs[0].Error()
-	default:
-		s := m.errs[0].Error()
-		for _, e := range m.errs[1:] {
-			s = fmt.Sprintf("%s > %s", s, e.Error())
-		}
-		return s
-	}
-}
-
-// Errors returns a list of errors.
-func (m MultiError) Errors() []error {
-	return m.errs
+	// Ctxs is the contexts of the Logger instance.
+	Ctxs []interface{}
 }

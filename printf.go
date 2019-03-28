@@ -10,7 +10,7 @@ type Printfer interface {
 // It will use logger.Info() to output the log by default. But you can change it
 // by the level argument.
 func ToPrintfer(logger Logger, level ...Level) Printfer {
-	logger = logger.Depth(logger.GetDepth() + 2)
+	logger = logger.WithDepth(logger.GetDepth() + 2)
 	logf := logger.Info
 	if len(level) > 0 {
 		switch l := level[0]; l {

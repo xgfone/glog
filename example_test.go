@@ -35,7 +35,7 @@ func TestStdLog(t *testing.T) {
 func ExampleKvTextEncoder() {
 	conf := EncoderConfig{IsLevel: true}
 	encoder := KvTextEncoder(os.Stdout, conf)
-	log := New(encoder).Cxt("name", "example", "id", 123)
+	log := New(encoder).WithCxt("name", "example", "id", 123)
 	log.Info("test", "key1", "value1", "key2", "value2")
 
 	// Output:
@@ -45,7 +45,7 @@ func ExampleKvTextEncoder() {
 func ExampleKvStdJSONEncoder() {
 	conf := EncoderConfig{IsLevel: true}
 	encoder := KvStdJSONEncoder(os.Stdout, conf)
-	log := New(encoder).Cxt("name", "example", "id", 123)
+	log := New(encoder).WithCxt("name", "example", "id", 123)
 	log.Info("test", "key1", "value1", "key2", "value2")
 
 	// Output:
@@ -55,7 +55,7 @@ func ExampleKvStdJSONEncoder() {
 func ExampleFmtTextEncoder() {
 	conf := EncoderConfig{IsLevel: true}
 	encoder := FmtTextEncoder(os.Stdout, conf)
-	log := New(encoder).Cxt("kv", "text", "example")
+	log := New(encoder).WithCxt("kv", "text", "example")
 	log.Info("test %s %s", "value1", "value2")
 
 	// Output:

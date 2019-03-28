@@ -30,12 +30,10 @@ func init() {
 // SetGlobalLogger sets the global logger to log.
 //
 // If log is nil, it will do nothing.
-//
-// Notice: for the global logger, it must be the builtin implementation.
 func SetGlobalLogger(log Logger) {
 	if log != nil {
 		last = log
-		root = log.Depth(log.GetDepth() + 1)
+		root = log.WithDepth(log.GetDepth() + 1)
 	}
 }
 
@@ -45,30 +43,23 @@ func GetGlobalLogger() Logger {
 }
 
 // WithLevel returns a new logger with the level.
-//
-// Since Level is the level type, we use WithLevel as the function name.
 func WithLevel(level Level) Logger {
-	return root.Level(level)
+	return root.WithLevel(level)
 }
 
 // WithEncoder returns a new logger with the encoder.
-//
-// Since Encoder is the encoder type, we use WithEncoder as the function name.
 func WithEncoder(encoder Encoder) Logger {
-	return root.Encoder(encoder)
+	return root.WithEncoder(encoder)
 }
 
 // WithCtx returns a new logger with the contexts.
-//
-// In order to keep consistent with WithLevel and WithEncoder,
-// we use WithCtx, not Ctx.
 func WithCtx(ctxs ...interface{}) Logger {
-	return root.Cxt(ctxs...)
+	return root.WithCxt(ctxs...)
 }
 
 // WithDepth returns a new logger with the caller depth.
 func WithDepth(depth int) Logger {
-	return root.Depth(depth)
+	return root.WithDepth(depth)
 }
 
 // GetWriter returns the underlying writer of the global logger.
@@ -93,17 +84,17 @@ func GetEncoder() Encoder {
 
 // SetDepth sets the caller depth of the global logger.
 func SetDepth(depth int) {
-	root.(Setter).SetDepth(depth)
+	root.SetDepth(depth)
 }
 
 // SetLevel sets the level of the global logger.
 func SetLevel(level Level) {
-	root.(Setter).SetLevel(level)
+	root.SetLevel(level)
 }
 
 // SetEncoder sets the encoder of the global logger.
 func SetEncoder(encoder Encoder) {
-	root.(Setter).SetEncoder(encoder)
+	root.SetEncoder(encoder)
 }
 
 // Trace fires a TRACE log.
@@ -161,11 +152,11 @@ func Fatal(msg string, args ...interface{}) error {
 // Notice: the file size is 1GB and the number is 30 by default. But you can
 // change it by passing the last two parameters as follow.
 //
-//     FileLogger(level, filepath, 2*1024*1024*1024) // 2GB each file
-//     FileLogger(level, filepath, 2*1024*1024*1024, 10) // 2GB each file and 10 files
+//     FileLogger(level, filepath, 1024*1024*1024) // 1GB each file
+//     FileLogger(level, filepath, 1024*1024*1024, 10) // 1GB each file and 10 files
 //
 func SimpleLogger(level, filepath string, args ...int) (Logger, io.Closer, error) {
-	logger := GetGlobalLogger().Level(NameToLevel(level))
+	logger := GetGlobalLogger().WithLevel(NameToLevel(level))
 	if filepath == "" {
 		return logger, nothingCloser{}, nil
 	}
@@ -180,12 +171,12 @@ func SimpleLogger(level, filepath string, args ...int) (Logger, io.Closer, error
 		count = args[1]
 	}
 
-	file, err := SizedRotatingFileWriter(filepath, size, count)
+	file, closer, err := SizedRotatingFileWriter(filepath, size, count)
 	if err != nil {
 		return nil, nil, err
 	}
 	logger.GetEncoder().ResetWriter(file)
-	return logger, file, nil
+	return logger, closer, nil
 }
 
 type nothingCloser struct{}

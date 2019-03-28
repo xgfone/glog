@@ -21,6 +21,8 @@ import (
 	"net"
 	"os"
 	"sync"
+
+	"github.com/xgfone/logger/utils"
 )
 
 var fileFlag = os.O_CREATE | os.O_APPEND | os.O_WRONLY
@@ -232,28 +234,6 @@ func BufferedWriter(bufSize int, w Writer) Writer {
 	return ChannelWriter(ch)
 }
 
-// Must object provides the following writer creation functions
-// which instead of returning an error parameter only return a writer
-// and panic on failure: FileWriter, NetWriter, SyslogWriter, SyslogNetWriter.
-var Must muster
-
-func must(w Writer, c io.Closer, err error) (Writer, io.Closer) {
-	if err != nil {
-		panic(err)
-	}
-	return w, c
-}
-
-type muster struct{}
-
-func (m muster) FileWriter(path string, mode ...os.FileMode) (Writer, io.Closer) {
-	return must(FileWriter(path, mode...))
-}
-
-func (m muster) NetWriter(network, addr string) (Writer, io.Closer) {
-	return must(NetWriter(network, addr))
-}
-
 // SizedRotatingFileWriter returns a new file writer with rotating
 // based on the size of the file.
 //
@@ -273,7 +253,7 @@ func (m muster) NetWriter(network, addr string) (Writer, io.Closer) {
 //     file.(Flusher).Flush()
 //
 func SizedRotatingFileWriter(filename string, size, count int,
-	mode ...os.FileMode) (io.WriteCloser, error) {
+	mode ...os.FileMode) (Writer, io.Closer, error) {
 
 	var _mode os.FileMode = 0644
 	if len(mode) > 0 && mode[0] > 0 {
@@ -288,9 +268,9 @@ func SizedRotatingFileWriter(filename string, size, count int,
 	}
 
 	if err := w.open(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &w, nil
+	return &w, &w, nil
 }
 
 // sizedRotatingFile is a rotating logging handler based on the size.
@@ -374,7 +354,7 @@ func (f *sizedRotatingFile) doRollover() (err error) {
 			return nil
 		}
 
-		for _, i := range Range(f.backupCount-1, 0, -1) {
+		for _, i := range utils.Range(f.backupCount-1, 0, -1) {
 			sfn := fmt.Sprintf("%s.%d", f.filename, i)
 			dfn := fmt.Sprintf("%s.%d", f.filename, i+1)
 			if fileIsExist(sfn) {

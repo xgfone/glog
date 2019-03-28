@@ -21,7 +21,7 @@ import (
 
 func TestNoErrorLogger(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
-	errlog := New(FmtTextEncoder(buf)).Cxt(Caller())
+	errlog := New(FmtTextEncoder(buf)).WithCxt(Caller())
 	logger := ToNoErrorLogger(errlog)
 
 	errlog.Info("hello, %s", "abc")

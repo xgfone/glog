@@ -19,7 +19,7 @@ import (
 )
 
 func ExampleCaller() {
-	logger := New(KvTextEncoder(os.Stdout)).Cxt("caller1", Caller())
+	logger := New(KvTextEncoder(os.Stdout)).WithCxt("caller1", Caller())
 	logger.Info("msg", "caller2", Caller())
 
 	// Output:

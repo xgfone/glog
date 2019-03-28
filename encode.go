@@ -54,36 +54,31 @@ type Encoder interface {
 	// So, at the moment, the log information should be passed to the next encoder.
 	Writer() Writer
 
-	// Encode the log and write it into the underlying writer.
-	Encode(depth int, level Level, msg string, args []interface{}, ctx []interface{}) error
+	// Encode the log record and write it into the underlying writer.
+	Encode(Record) error
 }
 
-// FuncEncoder stands for a function encoder, which is used to simplify
-// the funcion signature.
-type FuncEncoder func(w Writer, depth int, lvl Level, msg string, args []interface{}, ctx []interface{}) error
-
-type encoderFuncWrapper struct {
+type funcEncoder struct {
 	writer  Writer
-	encoder FuncEncoder
+	encoder func(Writer, Record) error
 }
 
-func (e *encoderFuncWrapper) Writer() Writer {
+func (e *funcEncoder) Writer() Writer {
 	return e.writer
 }
 
-func (e *encoderFuncWrapper) ResetWriter(w Writer) {
+func (e *funcEncoder) ResetWriter(w Writer) {
 	e.writer = w
 }
 
-func (e *encoderFuncWrapper) Encode(d int, l Level, m string, args, ctx []interface{}) error {
-	return e.encoder(e.writer, d+1, l, m, args, ctx)
+func (e *funcEncoder) Encode(record Record) error {
+	record.Depth++
+	return e.encoder(e.writer, record)
 }
 
 // EncoderFunc converts a function to an hashable Encoder.
-func EncoderFunc(w Writer, f FuncEncoder) Encoder {
-	// We use the pointer to encoderFuncWrapper instead of encoderFunc
-	// in order to make it be hashable.
-	return &encoderFuncWrapper{writer: w, encoder: f}
+func EncoderFunc(w Writer, f func(Writer, Record) error) Encoder {
+	return &funcEncoder{writer: w, encoder: f}
 }
 
 // MultiEncoder uses many encoders to encode the log record.
@@ -111,24 +106,23 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 		panic(fmt.Errorf("the first encoder must not be nil"))
 	}
 
-	return EncoderFunc(encoders[0].Writer(),
-		func(w Writer, d int, l Level, m string, a, c []interface{}) error {
-			d++
-			var hasErr bool
-			errs := make([]error, len(encoders))
-			for i, encoder := range encoders {
-				e := encoder.Encode(d, l, m, a, c)
-				errs[i] = e
-				if e != nil {
-					hasErr = true
-				}
+	return EncoderFunc(encoders[0].Writer(), func(w Writer, r Record) error {
+		r.Depth++
+		var hasErr bool
+		errs := make([]error, len(encoders))
+		for i, encoder := range encoders {
+			e := encoder.Encode(r)
+			errs[i] = e
+			if e != nil {
+				hasErr = true
 			}
+		}
 
-			if hasErr {
-				return MultiError{errs}
-			}
-			return nil
-		})
+		if hasErr {
+			return MultiError{errs}
+		}
+		return nil
+	})
 }
 
 // FilterEncoder returns an encoder that only forwards logs
@@ -136,21 +130,16 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 //
 // For example, filter those logs that the level is less than ERROR.
 //
-//    FilterEncoder(func(lvl Level, msg string, args []interface{},
-//                       ctxs []interface{}) bool {
-//        return level >= LvlError
-//    })
+//    FilterEncoder(func(r Record) bool { return r.Lvl >= LvlError })
 //
-func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []interface{}) bool,
-	encoder Encoder) Encoder {
-	return EncoderFunc(encoder.Writer(),
-		func(w Writer, d int, l Level, m string, args []interface{},
-			ctxs []interface{}) error {
-			if f(l, m, args, ctxs) {
-				return encoder.Encode(d+1, l, m, args, ctxs)
-			}
-			return nil
-		})
+func FilterEncoder(f func(Record) bool, encoder Encoder) Encoder {
+	return EncoderFunc(encoder.Writer(), func(w Writer, r Record) error {
+		if f(r) {
+			r.Depth++
+			return encoder.Encode(r)
+		}
+		return nil
+	})
 }
 
 // LevelFilterEncoder returns an encoder that only writes records which are
@@ -158,20 +147,15 @@ func FilterEncoder(f func(lvl Level, msg string, args []interface{}, ctx []inter
 //
 // For example, to only output ERROR/PANIC/FATAL logs:
 //
-//     logger.LevelFilterEncoder(logger.LvlError, logger.KvTextEncoder(os.Stdout))
+//     LevelFilterEncoder(LvlError, KvTextEncoder(os.Stdout))
 //
 func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
-	return FilterEncoder(func(l Level, m string, args, ctxs []interface{}) bool {
-		return l >= level
-	}, encoder)
+	return FilterEncoder(func(r Record) bool { return r.Lvl >= level }, encoder)
 }
 
 // NothingEncoder returns an encoder that does nothing.
 func NothingEncoder() Encoder {
-	return EncoderFunc(DiscardWriter(),
-		func(w Writer, d int, l Level, m string, a, c []interface{}) error {
-			return nil
-		})
+	return EncoderFunc(DiscardWriter(), func(w Writer, r Record) error { return nil })
 }
 
 // EncoderConfig configures the encoder.
@@ -278,10 +262,10 @@ func newKvEncoderConfig(conf ...EncoderConfig) EncoderConfig {
 func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	return EncoderFunc(out, func(out Writer, d int, l Level, m string, args, ctxs []interface{}) error {
-		d++
-		arglen := len(args)
-		ctxlen := len(ctxs)
+	return EncoderFunc(out, func(out Writer, r Record) error {
+		r.Depth++
+		arglen := len(r.Args)
+		ctxlen := len(r.Ctxs)
 		if arglen%2 != 0 || ctxlen%2 != 0 {
 			return ErrKeyValueNum
 		}
@@ -306,7 +290,7 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 
 			w.WriteString(c.LevelKey)
 			w.WriteString(c.TextKVSep)
-			w.Write(l.Bytes())
+			w.Write(r.Lvl.Bytes())
 			sep = true
 		}
 
@@ -315,17 +299,17 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 				w.WriteString(c.TextKVPairSep)
 			}
 
-			if v, err = MayBeValuer(d, l, ctxs[i]); err != nil {
+			if v, err = MayBeValuer(r, r.Ctxs[i]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v, true); err != nil {
+			if err = utils.WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 			w.WriteString(c.TextKVSep)
-			if v, err = MayBeValuer(d, l, ctxs[i+1]); err != nil {
+			if v, err = MayBeValuer(r, r.Ctxs[i+1]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v, true); err != nil {
+			if err = utils.WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 			sep = true
@@ -336,19 +320,19 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 				w.WriteString(c.TextKVPairSep)
 			}
 
-			if v, err = MayBeValuer(d, l, args[i]); err != nil {
+			if v, err = MayBeValuer(r, r.Args[i]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v, true); err != nil {
+			if err = utils.WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 
 			w.WriteString(c.TextKVSep)
 
-			if v, err = MayBeValuer(d, l, args[i+1]); err != nil {
+			if v, err = MayBeValuer(r, r.Args[i+1]); err != nil {
 				return err
 			}
-			if err = WriteIntoBuffer(w, v, true); err != nil {
+			if err = utils.WriteIntoBuffer(w, v, true); err != nil {
 				return err
 			}
 			sep = true
@@ -360,13 +344,13 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 
 		w.WriteString(c.MsgKey)
 		w.WriteString(c.TextKVSep)
-		w.WriteString(m)
+		w.WriteString(r.Msg)
 
 		if !c.NotNewLine {
 			w.WriteByte('\n')
 		}
 
-		_, err = MayWriteLevel(out, l, w.Bytes())
+		_, err = MayWriteLevel(out, r.Lvl, w.Bytes())
 		return err
 	})
 }
@@ -378,8 +362,8 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	return EncoderFunc(out, func(out Writer, d int, l Level, m string, args, ctxs []interface{}) error {
-		d++
+	return EncoderFunc(out, func(out Writer, r Record) error {
+		r.Depth++
 		var err error
 		var sep bool
 		w := utils.DefaultBufferPools.Get()
@@ -390,18 +374,18 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			sep = true
 		}
 
-		ctxlen := len(ctxs)
+		ctxlen := len(r.Ctxs)
 		if ctxlen > 0 {
 			if sep {
 				w.WriteByte(' ')
 			}
 
-			for _, v := range ctxs {
+			for _, v := range r.Ctxs {
 				w.WriteByte('{')
-				if v, err = MayBeValuer(d, l, v); err != nil {
+				if v, err = MayBeValuer(r, v); err != nil {
 					return err
 				}
-				if err = WriteIntoBuffer(w, v, true); err != nil {
+				if err = utils.WriteIntoBuffer(w, v, true); err != nil {
 					return err
 				}
 				w.WriteByte('}')
@@ -415,7 +399,7 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 				w.WriteByte(' ')
 			}
 			w.WriteString("[")
-			w.Write(l.Bytes())
+			w.Write(r.Lvl.Bytes())
 			w.WriteString("]")
 			sep = true
 		}
@@ -424,13 +408,13 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			w.WriteString(": ")
 		}
 
-		for i := range args {
-			if args[i], err = MayBeValuer(d, l, args[i]); err != nil {
+		for i := range r.Args {
+			if r.Args[i], err = MayBeValuer(r, r.Args[i]); err != nil {
 				return err
 			}
 		}
 
-		if _, err = fmt.Fprintf(w, m, args...); err != nil {
+		if _, err = fmt.Fprintf(w, r.Msg, r.Args...); err != nil {
 			return err
 		}
 
@@ -438,7 +422,7 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			w.WriteByte('\n')
 		}
 
-		_, err = MayWriteLevel(out, l, w.Bytes())
+		_, err = MayWriteLevel(out, r.Lvl, w.Bytes())
 		return err
 	})
 }
@@ -449,20 +433,20 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	return EncoderFunc(w, func(out Writer, d int, l Level, m string, args, ctxs []interface{}) error {
-		d++
+	return EncoderFunc(w, func(out Writer, r Record) error {
+		r.Depth++
 		_len := 3
-		argslen := len(args)
-		ctxslen := len(ctxs)
+		argslen := len(r.Args)
+		ctxslen := len(r.Ctxs)
 		if argslen%2 != 0 || ctxslen%2 != 0 {
 			return ErrKeyValueNum
 		}
 		_len += argslen/2 + ctxslen/2
 		maps := make(map[string]interface{}, _len)
-		maps[c.MsgKey] = m
+		maps[c.MsgKey] = r.Msg
 
 		if c.IsLevel {
-			maps[c.LevelKey] = l.String()
+			maps[c.LevelKey] = r.Lvl.String()
 		}
 		if c.IsTime {
 			now := time.Now()
@@ -475,22 +459,22 @@ func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ..
 		var err error
 		var v1, v2 interface{}
 		for i := 0; i < ctxslen; i += 2 {
-			if v1, err = MayBeValuer(d, l, ctxs[i]); err != nil {
+			if v1, err = MayBeValuer(r, r.Ctxs[i]); err != nil {
 				return err
 			}
-			if v2, err = MayBeValuer(d, l, ctxs[i+1]); err != nil {
+			if v2, err = MayBeValuer(r, r.Ctxs[i+1]); err != nil {
 				return err
 			}
-			maps[ToString(v1)] = v2
+			maps[utils.ToString(v1)] = v2
 		}
 		for i := 0; i < argslen; i += 2 {
-			if v1, err = MayBeValuer(d, l, args[i]); err != nil {
+			if v1, err = MayBeValuer(r, r.Args[i]); err != nil {
 				return err
 			}
-			if v2, err = MayBeValuer(d, l, args[i+1]); err != nil {
+			if v2, err = MayBeValuer(r, r.Args[i+1]); err != nil {
 				return err
 			}
-			maps[ToString(v1)] = v2
+			maps[utils.ToString(v1)] = v2
 		}
 
 		return encodeJSON(w, maps)
@@ -517,7 +501,7 @@ func KvStdJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 func KvSimpleJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 	return KvJSONEncoder(func(out Writer, v interface{}) error {
 		buf := utils.DefaultBufferPools.Get()
-		_, err := MarshalJSON(buf, v)
+		_, err := utils.MarshalJSON(buf, v)
 		if err == nil {
 			_, err = w.Write(buf.Bytes())
 		}

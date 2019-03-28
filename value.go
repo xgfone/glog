@@ -22,13 +22,14 @@ import (
 
 // A Valuer generates a log value, which represents a dynamic value
 // that is re-evaluated with each log event before firing it.
-type Valuer func(depth int, level Level) (interface{}, error)
+type Valuer func(Record) (interface{}, error)
 
 // MayBeValuer calls it and returns the result if v is Valuer.
 // Or returns v without change.
-func MayBeValuer(depth int, lvl Level, v interface{}) (interface{}, error) {
+func MayBeValuer(record Record, v interface{}) (interface{}, error) {
 	if f, ok := v.(Valuer); ok {
-		return f(depth+1, lvl)
+		record.Depth++
+		return f(record)
 	}
 	return v, nil
 }
@@ -38,8 +39,8 @@ func MayBeValuer(depth int, lvl Level, v interface{}) (interface{}, error) {
 //
 // If fullPath is true, it will return the full path of the file.
 func Caller(fullPath ...bool) Valuer {
-	return func(depth int, level Level) (interface{}, error) {
-		_, file, line, _ := runtime.Caller(depth + 1)
+	return func(record Record) (interface{}, error) {
+		_, file, line, _ := runtime.Caller(record.Depth + 1)
 		if len(fullPath) == 0 || !fullPath[0] {
 			idx := strings.LastIndexByte(file, '/')
 			// using idx+1 below handles both of following cases:

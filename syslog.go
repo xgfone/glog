@@ -56,8 +56,7 @@ func (s syslogWriter) WriteLevel(level Level, p []byte) (n int, err error) {
 
 // SyslogWriter opens a connection to the system syslog daemon
 // by calling syslog.New and writes all logs to it.
-func SyslogWriter(priority syslog.Priority, tag string) (io.Writer,
-	io.Closer, error) {
+func SyslogWriter(priority syslog.Priority, tag string) (Writer, io.Closer, error) {
 	w, err := syslog.New(priority, tag)
 	if err != nil {
 		return nil, nil, err
@@ -68,20 +67,10 @@ func SyslogWriter(priority syslog.Priority, tag string) (io.Writer,
 // SyslogNetWriter opens a connection to a log daemon over the network
 // and writes all logs to it.
 func SyslogNetWriter(net, addr string, priority syslog.Priority,
-	tag string) (io.Writer, io.Closer, error) {
+	tag string) (Writer, io.Closer, error) {
 	w, err := syslog.Dial(net, addr, priority, tag)
 	if err != nil {
 		return nil, nil, err
 	}
 	return syslogWriter{w}, w, nil
-}
-
-func (m muster) SyslogWriter(priority syslog.Priority,
-	tag string) (io.Writer, io.Closer) {
-	return must(SyslogWriter(priority, tag))
-}
-
-func (m muster) SyslogNetWriter(net, addr string, priority syslog.Priority,
-	tag string) (io.Writer, io.Closer) {
-	return must(SyslogNetWriter(net, addr, priority, tag))
 }

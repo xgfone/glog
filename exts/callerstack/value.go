@@ -23,8 +23,8 @@ import (
 
 // Caller is the same as logger.Caller(true), but removing the GOPATH prefix.
 func Caller(format ...string) logger.Valuer {
-	return func(depth int, level logger.Level) (interface{}, error) {
-		return fmt.Sprintf("%+v", stack.Caller(depth+1)), nil
+	return func(r logger.Record) (interface{}, error) {
+		return fmt.Sprintf("%+v", stack.Caller(r.Depth+1)), nil
 	}
 }
 
@@ -32,8 +32,8 @@ func Caller(format ...string) logger.Valuer {
 //
 // The default is using "%+s:%d:%n" as the format. See github.com/go-stack/stack
 func CallerStack(format ...string) logger.Valuer {
-	return func(depth int, level logger.Level) (interface{}, error) {
-		s := stack.Trace().TrimBelow(stack.Caller(depth + 1)).TrimRuntime()
+	return func(r logger.Record) (interface{}, error) {
+		s := stack.Trace().TrimBelow(stack.Caller(r.Depth + 1)).TrimRuntime()
 		if len(s) > 0 {
 			return fmt.Sprintf("%+v", s), nil
 		}

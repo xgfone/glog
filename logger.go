@@ -16,7 +16,6 @@ package logger
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"sync/atomic"
 )
@@ -27,35 +26,31 @@ var ErrPanic = fmt.Errorf("the panic level log")
 // DefaultLoggerDepth is the depth for the default implementing logger.
 const DefaultLoggerDepth = 2
 
-// Logger is an immutable logger interface.
-type Logger interface {
-	// Some methods to return a new Logger with the argument and the current state.
-	Level(level Level) Logger
-	Encoder(encoder Encoder) Logger
-	Cxt(ctxs ...interface{}) Logger
-	// stackDepth is the calling depth of the logger, which will be passed to
-	// the encoder. The default depth is the global variable DefaultLoggerDepth
-	// for the new Logger.
-	//
-	// It should be used typically when you wrap the logger. For example,
-	//
-	//   _logger := logger.New(logger.KvTextEncoder(os.Stdout))
-	//   _logger = _logger.Depth(_logger.GetDepth() + 1)
-	//
-	//   func Debug(m string, args ...interface{}) { _logger.Debug(m, args...) }
-	//   func Info(m string, args ...interface{}) { _logger.Debug(m, args...) }
-	//   func Warn(m string, args ...interface{}) { _logger.Debug(m, args...) }
-	//   ...
-	//
-	Depth(stackDepth int) Logger
-
-	// Some methods to return the inner state.
+// LogGetter is an interface to return the inner information of Logger.
+type LogGetter interface {
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
-	Writer() io.Writer // [DEPRECATED] Please use GetEncoder().Writer().
+}
 
-	// Some Logs based on the level.
+// LogSetter is an interface to modify the inner information of Logger.
+type LogSetter interface {
+	SetDepth(depth int)
+	SetLevel(level Level) // It should be thread-safe.
+	SetEncoder(encoder Encoder)
+}
+
+// LogWither is an interface to return a new Logger based on the current logger
+// with the new argument.
+type LogWither interface {
+	WithLevel(level Level) Logger
+	WithEncoder(encoder Encoder) Logger
+	WithCxt(ctxs ...interface{}) Logger
+	WithDepth(stackDepth int) Logger
+}
+
+// LogOutputter is an interface to emit the log.
+type LogOutputter interface {
 	Trace(msg string, args ...interface{}) error
 	Debug(msg string, args ...interface{}) error
 	Info(msg string, args ...interface{}) error
@@ -65,16 +60,12 @@ type Logger interface {
 	Fatal(msg string, args ...interface{}) error
 }
 
-// Setter is an interface of the setter of Logger, which modify
-// the inner state of Logger, not returning a new Logger.
-//
-// This interface indicates a mutable Logger.
-//
-// Notice: the builtin implementation has implemented this interface.
-type Setter interface {
-	SetDepth(depth int)
-	SetLevel(level Level) // It should be thread-safe.
-	SetEncoder(encoder Encoder)
+// Logger is an compositive logger interface.
+type Logger interface {
+	LogGetter
+	LogSetter
+	LogWither
+	LogOutputter
 }
 
 type logger struct {
@@ -106,10 +97,6 @@ func newLogger(l *logger) *logger {
 	}
 }
 
-func (l *logger) Writer() io.Writer {
-	return l.enc.Writer()
-}
-
 func (l *logger) GetDepth() int {
 	return l.depth
 }
@@ -134,37 +121,38 @@ func (l *logger) SetEncoder(encoder Encoder) {
 	l.enc = encoder
 }
 
-func (l *logger) Depth(depth int) Logger {
+func (l *logger) WithDepth(depth int) Logger {
 	log := newLogger(l)
 	log.depth = depth
 	return log
 }
 
-func (l *logger) Level(level Level) Logger {
+func (l *logger) WithLevel(level Level) Logger {
 	log := newLogger(l)
 	log.lvl = level
 	return log
 }
 
-func (l *logger) Encoder(encoder Encoder) Logger {
+func (l *logger) WithEncoder(encoder Encoder) Logger {
 	log := newLogger(l)
 	log.enc = encoder
 	return log
 }
 
-func (l *logger) Cxt(ctxs ...interface{}) Logger {
+func (l *logger) WithCxt(ctxs ...interface{}) Logger {
 	log := newLogger(l)
 	log.ctx = append(l.ctx, ctxs...)
 	return log
 }
 
-func (l *logger) log(level Level, msg string, args []interface{}) (err error) {
-	if level < l.GetLevel() {
+func (l *logger) log(lvl Level, msg string, args []interface{}) (err error) {
+	if lvl < l.GetLevel() {
 		return nil
 	}
-	err = l.enc.Encode(l.depth, level, msg, args, l.ctx)
 
-	switch level {
+	err = l.enc.Encode(Record{Depth: l.depth, Lvl: lvl, Msg: msg, Args: args, Ctxs: l.ctx})
+
+	switch lvl {
 	case LvlPanic:
 		panic(ErrPanic)
 	case LvlFatal:
