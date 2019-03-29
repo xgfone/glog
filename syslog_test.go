@@ -19,15 +19,20 @@ package logger
 import (
 	"fmt"
 	"log/syslog"
+	"testing"
 )
 
-func ExampleSyslogWriter() {
+func TestSyslogWriter(t *testing.T) {
 	conf := EncoderConfig{IsLevel: true}
-	out, c := Must.SyslogWriter(syslog.LOG_DEBUG, "testsyslog")
-	defer c.Close()
-	log := New(FmtTextEncoder(out, conf))
-	if err := log.Info("test %s %s", "syslog", "writer"); err != nil {
-		fmt.Printf("Error: %s\n", err)
+	out, closer, err := SyslogWriter(syslog.LOG_DEBUG, "testsyslog")
+	if err != nil {
+		t.Error(err)
+	} else {
+		defer closer.Close()
+		log := New(FmtTextEncoder(out, conf))
+		if err := log.Info("test %s %s", "syslog", "writer"); err != nil {
+			fmt.Printf("Error: %s\n", err)
+		}
 	}
 
 	// Output:
