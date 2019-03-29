@@ -27,10 +27,17 @@ import (
 
 var fileFlag = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 
-// Writer is equal to io.Writer.
+// Writer is the alias of io.Writer, in order to collect the writers to show
+// together in godoc, but we don't use the type alias by `type`, such as
 //
-// We do it in order to collect the writers to show together in godoc.
-type Writer = io.Writer
+//     type Writer = io.Writer
+//
+// Because we want to support the version below go1.9.
+//
+// Even so, you can still think it as io.Writer.
+type Writer interface {
+	Write(p []byte) (n int, err error)
+}
 
 // Flusher is used to flush the data to the underlying storage.
 type Flusher interface {
