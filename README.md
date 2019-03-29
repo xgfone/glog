@@ -1,15 +1,15 @@
 # logger [![Build Status](https://travis-ci.org/xgfone/logger.svg?branch=master)](https://travis-ci.org/xgfone/logger) [![GoDoc](https://godoc.org/github.com/xgfone/logger?status.svg)](http://godoc.org/github.com/xgfone/logger) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://raw.githubusercontent.com/xgfone/logger/master/LICENSE)
 
-Package logger provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance. It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
+Package `logger` provides an flexible, extensible and powerful logging management tool based on the level, which has done the better balance between the flexibility and the performance. It is inspired by [log15](https://github.com/inconshreveable/log15), [logrus](https://github.com/sirupsen/logrus), [go-kit](https://github.com/go-kit/kit).
 
 See the [GoDoc](https://godoc.org/github.com/xgfone/logger).
 
-**API has been stable.** The current is `v2`.
+**API has been stable.** The current is `v3`.
 
 
 ## Prerequisite
 
-Now `logger` requires Go `1.9+`.
+Now `logger` requires Go `1.x`.
 
 
 ## Basic Principle
@@ -33,41 +33,31 @@ Now `logger` requires Go `1.9+`.
 ## `Logger`
 
 ```go
-type Logger interface {
-	// Depth returns a new Logger with the stack depth.
-	//
-	// stackDepth is the calling depth of the logger, which will be passed to
-	// the encoder. The default depth is the global variable DefaultLoggerDepth
-	// for the new Logger.
-	//
-	// It should be used typically when you wrap the logger. For example,
-	//
-	//   log := logger.New(logger.KvTextEncoder(os.Stdout))
-	//   log = log.Depth(log.GetDepth() + 1)
-	//
-	//   func Debug(m string, args ...interface{}) { log.Debug(m, args...) }
-	//   func Info(m string, args ...interface{}) { log.Debug(m, args...) }
-	//   func Warn(m string, args ...interface{}) { log.Debug(m, args...) }
-	//   ...
-	//
-	Depth(stackDepth int) Logger
-
-	// Level returns a new Logger with the new level.
-	Level(level Level) Logger
-
-	// Encoder returns a new logger with the new encoder.
-	Encoder(encoder Encoder) Logger
-
-	// Ctx returns a new logger with the new contexts.
-	Cxt(ctxs ...interface{}) Logger
-
-	// Writer returns the underlying writer, which is the convenient function of
-	// GetEncoder().Writer().
-	Writer() io.Writer
+// LogGetter is an interface to return the inner information of Logger.
+type LogGetter interface {
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
+}
 
+// LogSetter is an interface to modify the inner information of Logger.
+type LogSetter interface {
+	SetDepth(depth int)
+	SetLevel(level Level) // It should be thread-safe.
+	SetEncoder(encoder Encoder)
+}
+
+// LogWither is an interface to return a new Logger based on the current logger
+// with the new argument.
+type LogWither interface {
+	WithLevel(level Level) Logger
+	WithEncoder(encoder Encoder) Logger
+	WithCxt(ctxs ...interface{}) Logger
+	WithDepth(stackDepth int) Logger
+}
+
+// LogOutputter is an interface to emit the log.
+type LogOutputter interface {
 	Trace(msg string, args ...interface{}) error
 	Debug(msg string, args ...interface{}) error
 	Info(msg string, args ...interface{}) error
@@ -75,6 +65,14 @@ type Logger interface {
 	Error(msg string, args ...interface{}) error
 	Panic(msg string, args ...interface{}) error
 	Fatal(msg string, args ...interface{}) error
+}
+
+// Logger is an compositive logger interface.
+type Logger interface {
+	LogGetter
+	LogSetter
+	LogWither
+	LogOutputter
 }
 ```
 
@@ -98,7 +96,7 @@ import (
 func main() {
 	conf := logger.EncoderConfig{IsLevel: true, IsTime: true}
 	encoder := logger.KvTextEncoder(os.Stdout, conf)
-	log := logger.New(encoder).Level(logger.LvlWarn)
+	log := logger.New(encoder).WithLevel(logger.LvlWarn)
 
 	log.Info("don't output")
 	log.Error("will output", "key", "value")
@@ -147,6 +145,10 @@ GetLevel() Level
 GetWriter() Writer // It's the short for GetEncode().Writer().
 GetEncoder() Encoder
 
+SetDepth(depth int)
+SetLevel(level Level)
+SetEncoder(encoder Encoder)
+
 Trace(msg string, args ...interface{}) error
 Debug(msg string, args ...interface{}) error
 Info(msg string, args ...interface{}) error
@@ -161,19 +163,8 @@ Use the global logger instead of the customized logger directly, such as `logger
 
 If you prefer the logger without the error, you maybe use `NoErrorLogger` converted by `ToNoErrorLogger(Logger)` from `Logger` as follow:
 ```go
-type NoErrorLogger interface {
-	Depth(stackDepth int) NoErrorLogger
-	Level(level Level) NoErrorLogger
-	Encoder(encoder Encoder) NoErrorLogger
-	Cxt(ctxs ...interface{}) NoErrorLogger
-
-	// Writer returns the underlying writer, which is the convenient function of
-	// GetEncoder().Writer().
-	Writer() io.Writer
-	GetDepth() int
-	GetLevel() Level
-	GetEncoder() Encoder
-
+// LogOutputterWithoutError is the same as LogOutputter, but not return an error.
+type LogOutputterWithoutError interface {
 	Trace(msg string, args ...interface{})
 	Debug(msg string, args ...interface{})
 	Info(msg string, args ...interface{})
@@ -182,14 +173,26 @@ type NoErrorLogger interface {
 	Panic(msg string, args ...interface{})
 	Fatal(msg string, args ...interface{})
 }
+
+// NoErrorLogger is equal to Logger, but not returning the error.
+type NoErrorLogger interface {
+	LogGetter
+	LogSetter
+	LogOutputterWithoutError
+
+	WithDepth(stackDepth int) NoErrorLogger
+	WithLevel(level Level) NoErrorLogger
+	WithEncoder(encoder Encoder) NoErrorLogger
+	WithCxt(ctxs ...interface{}) NoErrorLogger
+}
 ```
 
 ### Inherit the context of the parent logger
 
 ```go
 encoder := FmtTextEncoder(os.Stdout)
-parent := logger.New(encoder).Ctx("parent")
-child := parent.Ctx("child")
+parent := logger.New(encoder).WithCtx("parent")
+child := parent.WithCtx("child")
 child.Info("hello %s", "world")
 // Output:
 // [parent][child] :=>: hello world
@@ -199,7 +202,7 @@ OR
 
 ```go
 parent := logger.New("key1", "value1")
-child := parent.New("key2", "value2").Encoder(KvTextEncoder(os.Stdout))
+child := parent.New("key2", "value2").WithEncoder(logger.KvTextEncoder(os.Stdout))
 child.Info("hello world", "key3", "value3")
 // Output:
 // key1=value1 key2=value2 key3=value3 msg=hello world
@@ -221,7 +224,7 @@ type Encoder interface {
 	Writer() Writer
 
 	// Encode the log and write it into the underlying writer.
-	Encode(depth int, level Level, msg string, args []interface{}, ctx []interface{}) error
+	Encode(Record) error
 }
 ```
 
@@ -269,7 +272,7 @@ if err := log.Error("output to stdout & stderr"); err != nil {
 
 All implementing the interface `io.Writer` are a Writer.
 
-There are some the built-in writers in the core package, such as `DiscardWriter`, `NetWriter`, `FileWriter`, `MultiWriter`, `FailoverWriter`, `SafeWriter`, `ChannelWriter`, `BufferedWriter`, `LevelFilterWriter`, `SyslogWriter`, `SyslogNetWriter`, `SizedRotatingFileWriter` and `Must`.
+There are some the built-in writers in the core package, such as `DiscardWriter`, `NetWriter`, `FileWriter`, `MultiWriter`, `FailoverWriter`, `SafeWriter`, `ChannelWriter`, `BufferedWriter`, `LevelFilterWriter`, `SyslogWriter`, `SyslogNetWriter`, and `SizedRotatingFileWriter`.
 
 
 #### MultiWriter
@@ -277,7 +280,10 @@ There are some the built-in writers in the core package, such as `DiscardWriter`
 For an encoder, you can output the result to more than one destination by using `MultiWriter`. For example, output the log to STDOUT and the file:
 
 ```go
-writer := logger.MultiWriter(os.Stdout, logger.FileWriter("/path/to/file"))
+fileWriter, fileCloser, _ := logger.FileWriter("/path/to/file")
+defer fileCloser.Close()
+
+writer := logger.MultiWriter(os.Stdout, fileWriter)
 encoder := logger.KvTextEncoder(writer)
 log := logger.New(encoder)
 
@@ -289,11 +295,11 @@ log.Info("output to stdout and file")
 
 If the type of a certain value is `Valuer`, the default encoder engine will call it and encode the returned result. For example,
 ```go
-log := logger.New("hello", func(d int, l Level) (interface{}, error) { return "world", nil })
+log := logger.New("hello", func(r logger.Record) (interface{}, error) { return "world", nil })
 ```
 or
 ```go
-log.Info("hello %v", func(d int, l Level) (interface{}, error) { return "world", nil })
+log.Info("hello %v", func(r logger.Record) (interface{}, error) { return "world", nil })
 ```
 
 
