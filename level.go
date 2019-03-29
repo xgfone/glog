@@ -20,27 +20,43 @@ import (
 )
 
 const (
-	traceNameS = "TRACE"
-	debugNameS = "DEBUG"
-	infoNameS  = "INFO"
-	warnNameS  = "WARN"
-	errorNameS = "ERROR"
-	panicNameS = "PANIC"
-	fatalNameS = "FATAL"
-
+	traceNameS   = "TRACE"
+	debugNameS   = "DEBUG"
+	infoNameS    = "INFO"
+	warnNameS    = "WARN"
+	errorNameS   = "ERROR"
+	panicNameS   = "PANIC"
+	fatalNameS   = "FATAL"
 	unknownNameS = "UNKNOWN"
+
+	traceShortNameS   = "T"
+	debugShortNameS   = "D"
+	infoShortNameS    = "I"
+	warnShortNameS    = "W"
+	errorShortNameS   = "E"
+	panicShortNameS   = "P"
+	fatalShortNameS   = "F"
+	unknownShortNameS = "U"
 )
 
 var (
-	traceNameB = []byte(traceNameS)
-	debugNameB = []byte(debugNameS)
-	infoNameB  = []byte(infoNameS)
-	warnNameB  = []byte(warnNameS)
-	errorNameB = []byte(errorNameS)
-	panicNameB = []byte(panicNameS)
-	fatalNameB = []byte(fatalNameS)
-
+	traceNameB   = []byte(traceNameS)
+	debugNameB   = []byte(debugNameS)
+	infoNameB    = []byte(infoNameS)
+	warnNameB    = []byte(warnNameS)
+	errorNameB   = []byte(errorNameS)
+	panicNameB   = []byte(panicNameS)
+	fatalNameB   = []byte(fatalNameS)
 	unknownNameB = []byte(unknownNameS)
+
+	traceShortNameB   = []byte(traceShortNameS)
+	debugShortNameB   = []byte(debugShortNameS)
+	infoShortNameB    = []byte(infoShortNameS)
+	warnShortNameB    = []byte(warnShortNameS)
+	errorShortNameB   = []byte(errorShortNameS)
+	panicShortNameB   = []byte(panicShortNameS)
+	fatalShortNameB   = []byte(fatalShortNameS)
+	unknownShortNameB = []byte(unknownShortNameS)
 )
 
 // Predefine some levels
@@ -79,6 +95,28 @@ func (l Level) String() string {
 	}
 }
 
+// ShortString returns the short string representation.
+func (l Level) ShortString() string {
+	switch l {
+	case LvlTrace:
+		return traceShortNameS
+	case LvlDebug:
+		return debugShortNameS
+	case LvlInfo:
+		return infoShortNameS
+	case LvlWarn:
+		return warnShortNameS
+	case LvlError:
+		return errorShortNameS
+	case LvlPanic:
+		return panicShortNameS
+	case LvlFatal:
+		return fatalShortNameS
+	default:
+		return unknownShortNameS
+	}
+}
+
 // Bytes returns the []byte representation.
 func (l Level) Bytes() []byte {
 	switch l {
@@ -101,26 +139,56 @@ func (l Level) Bytes() []byte {
 	}
 }
 
+// ShortBytes returns the short []byte representation.
+func (l Level) ShortBytes() []byte {
+	switch l {
+	case LvlTrace:
+		return traceShortNameB
+	case LvlDebug:
+		return debugShortNameB
+	case LvlInfo:
+		return infoShortNameB
+	case LvlWarn:
+		return warnShortNameB
+	case LvlError:
+		return errorShortNameB
+	case LvlPanic:
+		return panicShortNameB
+	case LvlFatal:
+		return fatalShortNameB
+	default:
+		return unknownShortNameB
+	}
+}
+
+// WriteTo writes the level into out.
+func (l Level) WriteTo(out Writer, short bool) (n int, err error) {
+	if short {
+		return out.Write(l.ShortBytes())
+	}
+	return out.Write(l.Bytes())
+}
+
 // NameToLevel returns the Level by the name, which is case Insensitive.
 //
-// If the name is unknown, it will panic.
+// It supports the full or short name, but panic if the name is unknown.
 //
 // Notice: WARNING is the alias of WARN.
 func NameToLevel(name string) Level {
 	switch strings.ToUpper(name) {
-	case traceNameS:
+	case traceNameS, traceShortNameS:
 		return LvlTrace
-	case debugNameS:
+	case debugNameS, debugShortNameS:
 		return LvlDebug
-	case infoNameS:
+	case infoNameS, infoShortNameS:
 		return LvlInfo
-	case warnNameS, "WARNING":
+	case warnNameS, warnShortNameS, "WARNING":
 		return LvlWarn
-	case errorNameS:
+	case errorNameS, errorShortNameS:
 		return LvlError
-	case panicNameS:
+	case panicNameS, panicShortNameS:
 		return LvlPanic
-	case fatalNameS:
+	case fatalNameS, fatalShortNameS:
 		return LvlFatal
 	default:
 		panic(fmt.Errorf("unknown level name '%s'", name))

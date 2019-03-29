@@ -180,6 +180,12 @@ type EncoderConfig struct {
 	// If ture, the encoder will encode the level.
 	IsLevel bool
 
+	// If ture, the encoder will encode the level as the short description
+	// instead of the long description.
+	//
+	// Notice: if IsLevel is false, it will be ignored.
+	IsShortLevel bool
+
 	// For the Key-Value encoder, it represents the key name of the time.
 	// The global constant, TimeKey, will be used by default.
 	TimeKey string
@@ -290,7 +296,7 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 
 			w.WriteString(c.LevelKey)
 			w.WriteString(c.TextKVSep)
-			w.Write(r.Lvl.Bytes())
+			r.Lvl.WriteTo(w, c.IsShortLevel)
 			sep = true
 		}
 
@@ -398,9 +404,9 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			if sep {
 				w.WriteByte(' ')
 			}
-			w.WriteString("[")
-			w.Write(r.Lvl.Bytes())
-			w.WriteString("]")
+			w.WriteByte('[')
+			r.Lvl.WriteTo(w, c.IsShortLevel)
+			w.WriteByte(']')
 			sep = true
 		}
 
@@ -446,7 +452,11 @@ func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ..
 		maps[c.MsgKey] = r.Msg
 
 		if c.IsLevel {
-			maps[c.LevelKey] = r.Lvl.String()
+			if c.IsShortLevel {
+				maps[c.LevelKey] = r.Lvl.ShortString()
+			} else {
+				maps[c.LevelKey] = r.Lvl.String()
+			}
 		}
 		if c.IsTime {
 			now := time.Now()
