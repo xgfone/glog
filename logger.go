@@ -16,6 +16,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sync/atomic"
 )
@@ -66,6 +67,32 @@ type Logger interface {
 	LogSetter
 	LogWither
 	LogOutputter
+}
+
+// WriterLogger is an Logger interfce with the method Writer().
+type WriterLogger interface {
+	Logger
+
+	Writer() io.Writer
+}
+
+// ToWriterLogger converts Logger to WriterLogger.
+//
+// if logger is nil, use the default global logger.
+func ToWriterLogger(logger ...Logger) WriterLogger {
+	log := GetGlobalLogger()
+	if len(logger) > 0 && logger[0] != nil {
+		log = logger[0]
+	}
+	return wlogger{log}
+}
+
+type wlogger struct {
+	Logger
+}
+
+func (wl wlogger) Writer() io.Writer {
+	return wl.GetEncoder().Writer()
 }
 
 type logger struct {
