@@ -17,7 +17,11 @@ package logger
 import (
 	"io"
 	"os"
+	"sync"
 )
+
+var lock = new(sync.Mutex)
+var loggers = make(map[string]Logger, 16)
 
 var last Logger
 var root Logger
@@ -25,6 +29,42 @@ var root Logger
 func init() {
 	var defaultConf = EncoderConfig{IsLevel: true, IsTime: true}
 	SetGlobalLogger(New(FmtTextEncoder(os.Stdout, defaultConf)))
+}
+
+// GetLogger returns the logger named name from the global caches.
+//
+// It's thread-safe.
+//
+// Notice: if the logger named name does not exist, it will return a new one
+// based on the default global logger.
+func GetLogger(name string) Logger {
+	if name == "" {
+		panic("the logger is nil")
+	}
+
+	lock.Lock()
+	defer lock.Unlock()
+	logger := loggers[name]
+	if logger == nil {
+		logger = GetGlobalLogger().WithName(name)
+		loggers[name] = logger
+	}
+	return logger
+}
+
+// AddLoger adds the logger into the global caches.
+//
+// It's thread-safe.
+func AddLoger(logger Logger) {
+	if logger == nil {
+		panic("the logger is nil")
+	} else if logger.GetName() == "" {
+		panic("the logger name is empty")
+	}
+
+	lock.Lock()
+	defer lock.Unlock()
+	loggers[logger.GetName()] = logger
 }
 
 // SetGlobalLogger sets the global logger to log.
