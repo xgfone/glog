@@ -38,8 +38,15 @@ func SetGlobalLogger(log Logger) {
 }
 
 // GetGlobalLogger returns the global logger.
+//
+// The name of the default global logger is "root".
 func GetGlobalLogger() Logger {
 	return last
+}
+
+// WithName returns a new logger with the name.
+func WithName(name string) Logger {
+	return root.WithName(name)
 }
 
 // WithLevel returns a new logger with the level.
@@ -67,6 +74,11 @@ func GetWriter() Writer {
 	return root.GetEncoder().Writer()
 }
 
+// GetName returns the name of the current global logger.
+func GetName() string {
+	return root.GetName()
+}
+
 // GetDepth returns the caller depth of the global logger.
 func GetDepth() int {
 	return root.GetDepth()
@@ -80,6 +92,11 @@ func GetLevel() Level {
 // GetEncoder returns the encoder of the global logger.
 func GetEncoder() Encoder {
 	return root.GetEncoder()
+}
+
+// SetName sets the name of the current global logger.
+func SetName(name string) {
+	root.SetName(name)
 }
 
 // SetDepth sets the caller depth of the global logger.

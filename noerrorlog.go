@@ -31,6 +31,7 @@ type NoErrorLogger interface {
 	LogSetter
 	LogOutputterWithoutError
 
+	WithName(name string) NoErrorLogger
 	WithDepth(stackDepth int) NoErrorLogger
 	WithLevel(level Level) NoErrorLogger
 	WithEncoder(encoder Encoder) NoErrorLogger
@@ -65,6 +66,10 @@ func ToNoErrorLogger(logger ...Logger) NoErrorLogger {
 // returned by ToNoErrorLogger.
 func ToLogger(logger NoErrorLogger) Logger {
 	return logger.(loggerWithoutError).Logger.WithDepth(logger.GetDepth() - 1)
+}
+
+func (l loggerWithoutError) WithName(name string) NoErrorLogger {
+	return newNoErrorLogger(l.Logger.WithName(name), false)
 }
 
 func (l loggerWithoutError) WithDepth(stackDepth int) NoErrorLogger {

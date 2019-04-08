@@ -31,6 +31,7 @@ const (
 // Some key names. You can modify them to redefine them.
 const (
 	LevelKey = "lvl"
+	NameKey  = "log"
 	TimeKey  = "t"
 	MsgKey   = "msg"
 )
@@ -160,9 +161,6 @@ func NothingEncoder() Encoder {
 
 // EncoderConfig configures the encoder.
 type EncoderConfig struct {
-	Slice []interface{}
-	Map   map[string]interface{}
-
 	// If true, the encoder disable appending a newline.
 	NotNewLine bool
 
@@ -173,6 +171,9 @@ type EncoderConfig struct {
 
 	// If true, the time uses UTC.
 	IsTimeUTC bool
+
+	// If true, the encoder will encode the name of the logger.
+	IsName bool
 
 	// If ture, the encoder will encode the current time.
 	IsTime bool
@@ -185,6 +186,10 @@ type EncoderConfig struct {
 	//
 	// Notice: if IsLevel is false, it will be ignored.
 	IsShortLevel bool
+
+	// For the Key-Value encoder, it represents the key name of the logger name.
+	// The global constant, NameKey, will be used by default.
+	NameKey string
 
 	// For the Key-Value encoder, it represents the key name of the time.
 	// The global constant, TimeKey, will be used by default.
@@ -212,12 +217,24 @@ func (ec EncoderConfig) init() EncoderConfig {
 		ec.TimeLayout = time.RFC3339Nano
 	}
 
-	if ec.Slice == nil {
-		ec.Slice = make([]interface{}, 0)
+	if ec.NameKey == "" {
+		ec.NameKey = NameKey
+	}
+	if ec.TimeKey == "" {
+		ec.TimeKey = TimeKey
+	}
+	if ec.LevelKey == "" {
+		ec.LevelKey = LevelKey
+	}
+	if ec.MsgKey == "" {
+		ec.MsgKey = MsgKey
 	}
 
-	if ec.Map == nil {
-		ec.Map = make(map[string]interface{})
+	if ec.TextKVSep == "" {
+		ec.TextKVSep = TextKVSep
+	}
+	if ec.TextKVPairSep == "" {
+		ec.TextKVPairSep = TextKVPairSep
 	}
 
 	return ec
@@ -228,36 +245,6 @@ func newKvEncoderConfig(conf ...EncoderConfig) EncoderConfig {
 	if len(conf) > 0 {
 		c = conf[0]
 	}
-
-	if c.TimeKey == "" {
-		c.TimeKey = TimeKey
-	}
-	if c.LevelKey == "" {
-		c.LevelKey = LevelKey
-	}
-	if c.MsgKey == "" {
-		c.MsgKey = MsgKey
-	}
-
-	if c.TextKVSep == "" {
-		c.TextKVSep = TextKVSep
-	}
-	if c.TextKVPairSep == "" {
-		c.TextKVPairSep = TextKVPairSep
-	}
-
-	if len(c.Slice) > 0 {
-		c.Slice = append([]interface{}{}, c.Slice...)
-	}
-
-	if len(c.Map) > 0 {
-		maps := make(map[string]interface{}, len(c.Map))
-		for k, v := range c.Map {
-			maps[k] = v
-		}
-		c.Map = maps
-	}
-
 	return c.init()
 }
 
@@ -297,6 +284,17 @@ func KvTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			w.WriteString(c.LevelKey)
 			w.WriteString(c.TextKVSep)
 			r.Lvl.WriteTo(w, c.IsShortLevel)
+			sep = true
+		}
+
+		if c.IsName {
+			if sep {
+				w.WriteString(c.TextKVPairSep)
+			}
+
+			w.WriteString(c.NameKey)
+			w.WriteString(c.TextKVSep)
+			w.WriteString(r.Name)
 			sep = true
 		}
 
@@ -380,6 +378,16 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 			sep = true
 		}
 
+		if c.IsName {
+			if sep {
+				w.WriteByte(' ')
+			}
+			w.WriteByte('(')
+			w.WriteString(r.Name)
+			w.WriteByte(')')
+			sep = true
+		}
+
 		ctxlen := len(r.Ctxs)
 		if ctxlen > 0 {
 			if sep {
@@ -436,10 +444,13 @@ func FmtTextEncoder(out Writer, conf ...EncoderConfig) Encoder {
 // KvJSONEncoder encodes the log as the JSON and outputs it to w.
 //
 // KvStdJSONEncoder and KvSimpleJSONEncoder will use this encoder.
-func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ...EncoderConfig) Encoder {
+//
+// Notice: KvJSONEncoder doesn't append the newline.
+func KvJSONEncoder(encodeJSON func(w Writer, newline bool, v interface{}) error,
+	w Writer, conf ...EncoderConfig) Encoder {
 	c := newKvEncoderConfig(conf...)
 
-	return EncoderFunc(w, func(out Writer, r Record) error {
+	return EncoderFunc(w, func(out Writer, r Record) (err error) {
 		r.Depth++
 		_len := 3
 		argslen := len(r.Args)
@@ -451,6 +462,9 @@ func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ..
 		maps := make(map[string]interface{}, _len)
 		maps[c.MsgKey] = r.Msg
 
+		if c.IsName {
+			maps[c.NameKey] = r.Name
+		}
 		if c.IsLevel {
 			if c.IsShortLevel {
 				maps[c.LevelKey] = r.Lvl.ShortString()
@@ -466,7 +480,6 @@ func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ..
 			maps[c.TimeKey] = now
 		}
 
-		var err error
 		var v1, v2 interface{}
 		for i := 0; i < ctxslen; i += 2 {
 			if v1, err = MayBeValuer(r, r.Ctxs[i]); err != nil {
@@ -487,16 +500,19 @@ func KvJSONEncoder(encodeJSON func(Writer, interface{}) error, w Writer, conf ..
 			maps[utils.ToString(v1)] = v2
 		}
 
-		return encodeJSON(w, maps)
+		return encodeJSON(w, !c.NotNewLine, maps)
 	})
 }
 
 // KvStdJSONEncoder returns a new JSON encoder using the standard library,
 // json, to encode the log record.
 func KvStdJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
-	return KvJSONEncoder(func(out Writer, v interface{}) error {
+	return KvJSONEncoder(func(out Writer, newline bool, v interface{}) error {
 		bs, err := json.Marshal(v)
 		if err == nil {
+			if newline {
+				bs = append(bs, '\n')
+			}
 			_, err = out.Write(bs)
 		}
 		return err
@@ -509,10 +525,13 @@ func KvStdJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
 // Except for the type of Array and Slice, it does not use the reflection.
 // So it's faster than the standard library json.
 func KvSimpleJSONEncoder(w Writer, conf ...EncoderConfig) Encoder {
-	return KvJSONEncoder(func(out Writer, v interface{}) error {
+	return KvJSONEncoder(func(out Writer, newline bool, v interface{}) error {
 		buf := utils.DefaultBufferPools.Get()
 		_, err := utils.MarshalJSON(buf, v)
 		if err == nil {
+			if newline {
+				buf.WriteByte('\n')
+			}
 			_, err = w.Write(buf.Bytes())
 		}
 		utils.DefaultBufferPools.Put(buf)

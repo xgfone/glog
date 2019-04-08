@@ -16,6 +16,9 @@ package logger
 
 // Record stands for a log record.
 type Record struct {
+	// Name is the name of the logger to emit the log record.
+	Name string
+
 	// Depth is the depth of the caller.
 	Depth int
 

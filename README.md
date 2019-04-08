@@ -4,7 +4,7 @@ Package `logger` provides an flexible, extensible and powerful logging managemen
 
 See the [GoDoc](https://godoc.org/github.com/xgfone/logger).
 
-**API has been stable.** The current is `v3`.
+**API has been stable.** The current is `v4`.
 
 
 ## Prerequisite
@@ -35,6 +35,7 @@ Now `logger` requires Go `1.x`.
 ```go
 // LogGetter is an interface to return the inner information of Logger.
 type LogGetter interface {
+	GetName() string
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
@@ -42,6 +43,7 @@ type LogGetter interface {
 
 // LogSetter is an interface to modify the inner information of Logger.
 type LogSetter interface {
+	SetName(name string)
 	SetDepth(depth int)
 	SetLevel(level Level) // It should be thread-safe.
 	SetEncoder(encoder Encoder)
@@ -50,6 +52,7 @@ type LogSetter interface {
 // LogWither is an interface to return a new Logger based on the current logger
 // with the new argument.
 type LogWither interface {
+	WithName(name string) Logger
 	WithLevel(level Level) Logger
 	WithEncoder(encoder Encoder) Logger
 	WithCxt(ctxs ...interface{}) Logger
@@ -135,16 +138,19 @@ Furthermore, `logger` has built in a global logger, which is equal to `logger.Ne
 SetGlobalLogger(newLogger Logger)
 GetGlobalLogger() Logger
 
+WithName(name string) Logger
 WithLevel(level Level) Logger
 WithEncoder(encoder Encoder) Logger
 WithCtx(ctxs ...interface{}) Logger
 WithDepth(depth int) Logger
 
+GetName() string
 GetDepth() int
 GetLevel() Level
 GetWriter() Writer // It's the short for GetEncode().Writer().
 GetEncoder() Encoder
 
+SetName(name string)
 SetDepth(depth int)
 SetLevel(level Level)
 SetEncoder(encoder Encoder)
@@ -180,6 +186,7 @@ type NoErrorLogger interface {
 	LogSetter
 	LogOutputterWithoutError
 
+	WithName(name string) NoErrorLogger
 	WithDepth(stackDepth int) NoErrorLogger
 	WithLevel(level Level) NoErrorLogger
 	WithEncoder(encoder Encoder) NoErrorLogger

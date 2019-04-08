@@ -29,6 +29,7 @@ const DefaultLoggerDepth = 2
 
 // LogGetter is an interface to return the inner information of Logger.
 type LogGetter interface {
+	GetName() string
 	GetDepth() int
 	GetLevel() Level
 	GetEncoder() Encoder
@@ -36,6 +37,7 @@ type LogGetter interface {
 
 // LogSetter is an interface to modify the inner information of Logger.
 type LogSetter interface {
+	SetName(name string)
 	SetDepth(depth int)
 	SetLevel(level Level) // It should be thread-safe.
 	SetEncoder(encoder Encoder)
@@ -44,6 +46,7 @@ type LogSetter interface {
 // LogWither is an interface to return a new Logger based on the current logger
 // with the new argument.
 type LogWither interface {
+	WithName(name string) Logger
 	WithLevel(level Level) Logger
 	WithEncoder(encoder Encoder) Logger
 	WithCxt(ctxs ...interface{}) Logger
@@ -100,16 +103,20 @@ type logger struct {
 	lvl Level
 	ctx []interface{}
 
+	name  string
 	depth int
 }
 
 // New returns a new Logger.
+//
+// The name is "root" by default.
 func New(encoder Encoder) Logger {
 	return &logger{
 		lvl: LvlTrace,
 		enc: encoder,
 		ctx: make([]interface{}, 0),
 
+		name:  "root",
 		depth: DefaultLoggerDepth,
 	}
 }
@@ -120,8 +127,13 @@ func newLogger(l *logger) *logger {
 		ctx: l.ctx,
 		lvl: l.GetLevel(),
 
+		name:  l.name,
 		depth: l.depth,
 	}
+}
+
+func (l *logger) GetName() string {
+	return l.name
 }
 
 func (l *logger) GetDepth() int {
@@ -136,6 +148,10 @@ func (l *logger) GetEncoder() Encoder {
 	return l.enc
 }
 
+func (l *logger) SetName(name string) {
+	l.name = name
+}
+
 func (l *logger) SetDepth(depth int) {
 	l.depth = depth
 }
@@ -146,6 +162,12 @@ func (l *logger) SetLevel(level Level) {
 
 func (l *logger) SetEncoder(encoder Encoder) {
 	l.enc = encoder
+}
+
+func (l *logger) WithName(name string) Logger {
+	log := newLogger(l)
+	log.name = name
+	return log
 }
 
 func (l *logger) WithDepth(depth int) Logger {
@@ -177,7 +199,14 @@ func (l *logger) log(lvl Level, msg string, args []interface{}) (err error) {
 		return nil
 	}
 
-	err = l.enc.Encode(Record{Depth: l.depth, Lvl: lvl, Msg: msg, Args: args, Ctxs: l.ctx})
+	err = l.enc.Encode(Record{
+		Lvl:   lvl,
+		Msg:   msg,
+		Args:  args,
+		Ctxs:  l.ctx,
+		Name:  l.name,
+		Depth: l.depth,
+	})
 
 	switch lvl {
 	case LvlPanic:
