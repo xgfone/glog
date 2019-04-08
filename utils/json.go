@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 )
 
 // Predefine some json mark
@@ -53,7 +54,7 @@ var (
 //   uint16
 //   uint32
 //   uint64
-//   time.Time
+//   time.Time  // The layout is time.RFC3339Nano.
 //   map[string]interface{} or map[string]string for json object
 //   json.Marshaler
 //   fmt.Stringer
@@ -73,6 +74,8 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 		return WriteString(w, _v, true)
 	case error:
 		return WriteString(w, _v.Error(), true)
+	case time.Time:
+		return WriteString(w, _v.Format(time.RFC3339Nano), true)
 	case fmt.Stringer:
 		return WriteString(w, _v.String(), true)
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64,
@@ -274,7 +277,7 @@ func MarshalJSON(w io.Writer, v interface{}) (n int, err error) {
 //   uint16
 //   uint32
 //   uint64
-//   time.Time
+//   time.Time  // The layout is time.RFC3339Nano.
 //   map[string]interface{} or map[string]string for json object
 //   json.Marshaler
 //   fmt.Stringer
@@ -344,6 +347,11 @@ func MarshalKvJSON(w io.Writer, args ...interface{}) (n int, err error) {
 			n += m
 		case error:
 			if m, err = WriteString(w, v.Error(), true); err != nil {
+				return
+			}
+			n += m
+		case time.Time:
+			if m, err = WriteString(w, v.Format(time.RFC3339Nano), true); err != nil {
 				return
 			}
 			n += m
