@@ -131,9 +131,9 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 //
 // For example, filter those logs that the level is less than ERROR.
 //
-//    FilterEncoder(func(r Record) bool { return r.Lvl >= LvlError }, encoder)
+//    FilterEncoder(encoder, func(r Record) bool { return r.Lvl >= LvlError })
 //
-func FilterEncoder(f func(Record) bool, encoder Encoder) Encoder {
+func FilterEncoder(encoder Encoder, f func(Record) bool) Encoder {
 	return EncoderFunc(encoder.Writer(), func(w Writer, r Record) error {
 		if f(r) {
 			r.Depth++
@@ -146,27 +146,27 @@ func FilterEncoder(f func(Record) bool, encoder Encoder) Encoder {
 // AllowLoggerFilterEncoder returns a new encoder that only emits the logs
 // emitted by the loggers named in allow.
 func AllowLoggerFilterEncoder(allow []string, encoder Encoder) Encoder {
-	return FilterEncoder(func(r Record) bool {
+	return FilterEncoder(encoder, func(r Record) bool {
 		for _, name := range allow {
 			if name == r.Name {
 				return true
 			}
 		}
 		return false
-	}, encoder)
+	})
 }
 
 // DenyLoggerFilterEncoder returns a new encoder that ignore the logs
 // emitted by the loggers named in deny.
 func DenyLoggerFilterEncoder(deny []string, encoder Encoder) Encoder {
-	return FilterEncoder(func(r Record) bool {
+	return FilterEncoder(encoder, func(r Record) bool {
 		for _, name := range deny {
 			if name == r.Name {
 				return false
 			}
 		}
 		return true
-	}, encoder)
+	})
 }
 
 // LevelFilterEncoder returns an encoder that only writes records which are
@@ -177,7 +177,7 @@ func DenyLoggerFilterEncoder(deny []string, encoder Encoder) Encoder {
 //     LevelFilterEncoder(LvlError, KvTextEncoder(os.Stdout))
 //
 func LevelFilterEncoder(level Level, encoder Encoder) Encoder {
-	return FilterEncoder(func(r Record) bool { return r.Lvl >= level }, encoder)
+	return FilterEncoder(encoder, func(r Record) bool { return r.Lvl >= level })
 }
 
 // NothingEncoder returns an encoder that does nothing.
