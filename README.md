@@ -310,6 +310,22 @@ log.Info("hello %v", func(r logger.Record) (interface{}, error) { return "world"
 ```
 
 
+### Logger Cache
+```go
+// Initializing
+SetEncoder(newEncoder)
+
+// Usage
+webLogger := GetLogger("web")
+cliLogger := GetLogger("cli")
+
+webLogger.Info("This is a web log")
+cliLogger.Info("This is a cli log")
+```
+
+`GetLogger` will return the same logger for the same name, no matter how many times you call it.
+
+
 ## Performance
 
 The log framework itself has no any performance costs.
