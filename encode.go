@@ -131,7 +131,7 @@ func MultiEncoder(encoders ...Encoder) Encoder {
 //
 // For example, filter those logs that the level is less than ERROR.
 //
-//    FilterEncoder(func(r Record) bool { return r.Lvl >= LvlError })
+//    FilterEncoder(func(r Record) bool { return r.Lvl >= LvlError }, encoder)
 //
 func FilterEncoder(f func(Record) bool, encoder Encoder) Encoder {
 	return EncoderFunc(encoder.Writer(), func(w Writer, r Record) error {
@@ -141,6 +141,32 @@ func FilterEncoder(f func(Record) bool, encoder Encoder) Encoder {
 		}
 		return nil
 	})
+}
+
+// AllowLoggerFilterEncoder returns a new encoder that only emits the logs
+// emitted by the loggers named in allow.
+func AllowLoggerFilterEncoder(allow []string, encoder Encoder) Encoder {
+	return FilterEncoder(func(r Record) bool {
+		for _, name := range allow {
+			if name == r.Name {
+				return true
+			}
+		}
+		return false
+	}, encoder)
+}
+
+// DenyLoggerFilterEncoder returns a new encoder that ignore the logs
+// emitted by the loggers named in deny.
+func DenyLoggerFilterEncoder(deny []string, encoder Encoder) Encoder {
+	return FilterEncoder(func(r Record) bool {
+		for _, name := range deny {
+			if name == r.Name {
+				return false
+			}
+		}
+		return true
+	}, encoder)
 }
 
 // LevelFilterEncoder returns an encoder that only writes records which are
