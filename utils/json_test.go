@@ -16,6 +16,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -28,6 +29,8 @@ func ExampleMarshalJSON() {
 	MarshalJSON(buf, 1.23)
 	buf.WriteByte('\n')
 	MarshalJSON(buf, "123")
+	buf.WriteByte('\n')
+	MarshalJSON(buf, `double"quotation`)
 	buf.WriteByte('\n')
 	MarshalJSON(buf, time.Time{})
 	buf.WriteByte('\n')
@@ -46,6 +49,7 @@ func ExampleMarshalJSON() {
 	// 123
 	// 1.23
 	// "123"
+	// "double\"quotation"
 	// "0001-01-01T00:00:00Z"
 	// [1,2,3]
 	// ["a","b","c"]
@@ -56,9 +60,18 @@ func ExampleMarshalJSON() {
 
 func ExampleMarshalKvJSON() {
 	buf := bytes.NewBuffer(nil)
-	MarshalKvJSON(buf, "nil", nil, "bool", true, "string", "abc", "int", 123, "float", 1.23, "slice", []interface{}{"abc", 123}, "sslice", []string{"a", "b", "c"}, "map", map[string]interface{}{"key": "xyz"})
+	MarshalKvJSON(buf, "nil", nil, "bool", true, "string", "abc", "int", 123,
+		"double_quotation", `a"b`, "float", 1.23, "slice", []interface{}{"abc", 123},
+		"sslice", []string{"a", "b", "c"}, "map", map[string]interface{}{"key": "xyz"})
 
 	fmt.Println(buf.String())
+
+	// Check whether the json string is valid.
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(buf.Bytes(), &data); err != nil {
+		fmt.Println(err)
+	}
+
 	// Output:
-	// {"nil":null,"bool":true,"string":"abc","int":123,"float":1.23,"slice":["abc",123],"sslice":["a","b","c"],"map":{"key":"xyz"}}
+	// {"nil":null,"bool":true,"string":"abc","int":123,"double_quotation":"a\"b","float":1.23,"slice":["abc",123],"sslice":["a","b","c"],"map":{"key":"xyz"}}
 }
