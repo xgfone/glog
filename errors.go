@@ -39,7 +39,9 @@ func (m MultiError) Error() string {
 	default:
 		s := m.errs[0].Error()
 		for _, e := range m.errs[1:] {
-			s = fmt.Sprintf("%s > %s", s, e.Error())
+			if e != nil {
+				s = fmt.Sprintf("%s > %s", s, e.Error())
+			}
 		}
 		return s
 	}
