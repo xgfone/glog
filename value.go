@@ -34,9 +34,9 @@ func MayBeValuer(record Record, v interface{}) (interface{}, error) {
 	return v, nil
 }
 
-// Caller returns a Valuer that returns a file and line.
+// Caller returns a Valuer that returns the caller "file:line".
 //
-// Notice: the GOPATH prefix will be removed.
+// If fullPath is true, the file is the full path but removing the GOPATH prefix.
 func Caller(fullPath ...bool) Valuer {
 	format := "%v"
 	if len(fullPath) > 0 && fullPath[0] {
@@ -49,11 +49,18 @@ func Caller(fullPath ...bool) Valuer {
 }
 
 // CallerStack returns a Valuer returning the caller stack without runtime.
-func CallerStack() Valuer {
+//
+// If fullPath is true, the file is the full path but removing the GOPATH prefix.
+func CallerStack(fullPath ...bool) Valuer {
+	format := "%v"
+	if len(fullPath) > 0 && fullPath[0] {
+		format = "%+v"
+	}
+
 	return func(r Record) (interface{}, error) {
 		s := stack.Trace().TrimBelow(stack.Caller(r.Depth + 1)).TrimRuntime()
 		if len(s) > 0 {
-			return fmt.Sprintf("%+v", s), nil
+			return fmt.Sprintf(format, s), nil
 		}
 		return "", nil
 	}

@@ -37,7 +37,7 @@ func ExampleCaller() {
 }
 
 func ExampleCallerStack() {
-	if v, err := CallerStack()(Record{Lvl: LvlDebug}); err != nil {
+	if v, err := CallerStack(true)(Record{Lvl: LvlDebug}); err != nil {
 		fmt.Println(err)
 	} else {
 		fmt.Println(v.(string)[1:42])
