@@ -21,7 +21,7 @@ import (
 )
 
 func TestCaller(t *testing.T) {
-	if v, err := Caller(true)(Record{Lvl: LvlDebug}); err != nil {
+	if v, err := Caller(true)(Record{}); err != nil {
 		t.Error(err)
 	} else if v.(string) != "github.com/xgfone/logger/value_test.go:24" {
 		t.Error(v)
@@ -37,7 +37,7 @@ func ExampleCaller() {
 }
 
 func ExampleCallerStack() {
-	if v, err := CallerStack(true)(Record{Lvl: LvlDebug}); err != nil {
+	if v, err := CallerStack(true)(Record{}); err != nil {
 		fmt.Println(err)
 	} else {
 		fmt.Println(v.(string)[1:42])
