@@ -19,7 +19,6 @@
 // Basic Principle
 //   - The better performance
 //   - Flexible, extensible, and powerful
-//   - No any third-party dependencies
 //
 // Features
 //   - A simple, easy-to-understand API

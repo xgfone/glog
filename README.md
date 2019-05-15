@@ -16,7 +16,6 @@ Now `logger` requires Go `1.x`.
 
 - The better performance
 - Flexible, extensible, and powerful
-- No any third-party dependencies
 
 
 ## Features

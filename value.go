@@ -15,9 +15,9 @@
 package logger
 
 import (
-	"runtime"
-	"strconv"
-	"strings"
+	"fmt"
+
+	"github.com/go-stack/stack"
 )
 
 // A Valuer generates a log value, which represents a dynamic value
@@ -34,20 +34,27 @@ func MayBeValuer(record Record, v interface{}) (interface{}, error) {
 	return v, nil
 }
 
-// Caller returns a Valuer that returns a file and line from a specified depth
-// in the callstack.
+// Caller returns a Valuer that returns a file and line.
 //
-// If fullPath is true, it will return the full path of the file.
+// Notice: the GOPATH prefix will be removed.
 func Caller(fullPath ...bool) Valuer {
-	return func(record Record) (interface{}, error) {
-		_, file, line, _ := runtime.Caller(record.Depth + 1)
-		if len(fullPath) == 0 || !fullPath[0] {
-			idx := strings.LastIndexByte(file, '/')
-			// using idx+1 below handles both of following cases:
-			// idx == -1 because no "/" was found, or
-			// idx >= 0 and we want to start at the character after the found "/".
-			file = file[idx+1:]
+	format := "%v"
+	if len(fullPath) > 0 && fullPath[0] {
+		format = "%+v"
+	}
+
+	return func(r Record) (interface{}, error) {
+		return fmt.Sprintf(format, stack.Caller(r.Depth+1)), nil
+	}
+}
+
+// CallerStack returns a Valuer returning the caller stack without runtime.
+func CallerStack() Valuer {
+	return func(r Record) (interface{}, error) {
+		s := stack.Trace().TrimBelow(stack.Caller(r.Depth + 1)).TrimRuntime()
+		if len(s) > 0 {
+			return fmt.Sprintf("%+v", s), nil
 		}
-		return file + ":" + strconv.Itoa(line), nil
+		return "", nil
 	}
 }
