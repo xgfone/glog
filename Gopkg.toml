@@ -1,0 +1,7 @@
+[[constraint]]
+    name = "github.com/xgfone/go-tools"
+    version = "v5.8.0"
+
+[[constraint]]
+    name = "github.com/go-stack/stack"
+    version = "v1.8.0"
