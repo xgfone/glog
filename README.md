@@ -96,14 +96,14 @@ import (
 )
 
 func main() {
-	conf := logger.EncoderConfig{IsLevel: true, IsTime: true}
-	encoder := logger.KvTextEncoder(os.Stdout, conf)
+	encoder := logger.NewTextJSONEncoder(os.Stdout)
 	log := logger.New(encoder).WithLevel(logger.LvlWarn)
 
 	log.Info("don't output")
 	log.Error("will output", "key", "value")
+
 	// Output:
-	// t=2018-10-25T10:46:22.0035694+08:00 lvl=ERROR key=value msg=will output
+	// time=2019-05-17T15:34:00.9473464+08:00 level=ERROR key=value msg=will output
 }
 ```
 
@@ -113,18 +113,17 @@ Or you can use the convenient function `SimpleLogger(level, log_file_path string
 package main
 
 import (
-	"os"
-
 	"github.com/xgfone/logger"
 )
 
 func main() {
-	log, _, _ := logger.SimpleLogger("info", "")
+	log, _, _ := logger.SimpleLogger("warn", "")
 
 	log.Info("don't output")
-	log.Error("will output", "key", "value")
+	log.Error("will output %s %s", "key", "value")
+
 	// Output:
-	// t=2018-10-25T10:46:22.0035694+08:00 lvl=ERROR key=value msg=will output
+	// 2019-05-17T15:36:13.3431634+08:00 [ERROR]: will output key value
 }
 ```
 
@@ -132,7 +131,7 @@ func main() {
 
 `logger` is based on the level, and the log output interfaces is **`func(string, ...interface{}) error`**, the meaning of the arguments of which is decided by the encoder. See below.
 
-Furthermore, `logger` has built in a global logger, which is equal to `logger.New(logger.FmtTextEncoder(os.Stdout, logger.EncoderConfig{IsLevel: true, IsTime: true}))`, and you can use the functions as follow:
+Furthermore, `logger` has built in a global logger, which is equal to `logger.New(logger.NewFmtEncoder(os.Stdout))`, and you can use the functions as follow:
 ```go
 SetGlobalLogger(newLogger Logger)
 GetGlobalLogger() Logger
@@ -196,22 +195,23 @@ type NoErrorLogger interface {
 ### Inherit the context of the parent logger
 
 ```go
-encoder := FmtTextEncoder(os.Stdout)
-parent := logger.New(encoder).WithCtx("parent")
-child := parent.WithCtx("child")
-child.Info("hello %s", "world")
-// Output:
-// [parent][child] :=>: hello world
-```
+package main
 
-OR
+import (
+	"os"
 
-```go
-parent := logger.New("key1", "value1")
-child := parent.New("key2", "value2").WithEncoder(logger.KvTextEncoder(os.Stdout))
-child.Info("hello world", "key3", "value3")
-// Output:
-// key1=value1 key2=value2 key3=value3 msg=hello world
+	"github.com/xgfone/logger"
+)
+
+func main() {
+	encoder := logger.NewFmtEncoder(os.Stdout)
+	parent := logger.New(encoder).WithCxt("parent")
+	child := parent.WithCxt("child")
+	child.Info("hello %s", "world")
+
+	// Output:
+	// 2019-05-17T15:42:36.2185998+08:00 parent|child main.go:13 [INFO]: hello world
+}
 ```
 
 
@@ -234,15 +234,15 @@ type Encoder interface {
 }
 ```
 
-The core package provides three kinds of the implementations of the encoder: the text encoder based on Key-Value `KvTextEncoder`, the text encoder based on Format `FmtTextEncoder` and the json encoder based on Key-Value `KvStdJSONEncoder` and `KvSimpleJSONEncoder`.
+The core package provides three kinds of the implementations of the encoder: the text encoder based on Key-Value `NewTextJSONEncoder`, the text encoder based on Format `NewFmtEncoder`, and the json encoder based on Key-Value `NewStdJSONEncoder` and `NewSimpleJSONEncoder`.
 
 For the encoders based on Format, the arguments of the log output function, such as `Info()`, are the same as those of `fmt.Sprintf()`. For the encoders based on Key-Value, but, the first argument is the log description, and the rests are the key-value pairs, the number of which are even, for example, `logger.Info("log description", "key1", "value1", "key2", "value2")`.
 
 ```go
-kvlog := logger.New(logger.KvTextEncoder(os.Stdout))
+kvlog := logger.New(logger.NewTextJSONEncoder(os.Stdout))
 kvlog.Info("creating connection", "host", "127.0.0.1", "port", 80)
 
-fmtlog := logger.New(logger.FmtTextEncoder(os.Stdout))
+fmtlog := logger.New(logger.NewFmtEncoder(os.Stdout))
 kvlog.Info("creating connection to %s:%d", "127.0.0.1", 80)
 ```
 
@@ -252,8 +252,8 @@ You can use `LevelFilterEncoder` to filter some logs by the level, for example,
 
 ```go
 encoders := ["kvtext", "kvjson"]
-textenc := logger.KvTextEncoder(os.Stdout)
-jsonenc := logger.KvSimpleJSONEncoder(os.Stderr)
+textenc := logger.NewTextJSONEncoder(os.Stdout)
+jsonenc := logger.NewSimpleJSONEncoder(os.Stderr)
 
 textenc = logger.LevelFilterEncoder(logger.LvlInfo, textenc)
 jsonenc = logger.LevelFilterEncoder(logger.LvlError, jsonenc)
@@ -290,7 +290,7 @@ fileWriter, fileCloser, _ := logger.FileWriter("/path/to/file")
 defer fileCloser.Close()
 
 writer := logger.MultiWriter(os.Stdout, fileWriter)
-encoder := logger.KvTextEncoder(writer)
+encoder := logger.NewTextJSONEncoder(writer)
 log := logger.New(encoder)
 
 log.Info("output to stdout and file")
@@ -301,11 +301,12 @@ log.Info("output to stdout and file")
 
 If the type of a certain value is `Valuer`, the default encoder engine will call it and encode the returned result. For example,
 ```go
-log := logger.New("hello", func(r logger.Record) (interface{}, error) { return "world", nil })
+lazy := func(r logger.Record) (interface{}, error) { return "world", nil }
+log := logger.New(logger.NewTextJSONEncoder(os.Stdout)).WithCxt("hello", lazy)
 ```
 or
 ```go
-log.Info("hello %v", func(r logger.Record) (interface{}, error) { return "world", nil })
+log.Info("hello %s", func(r logger.Record) (interface{}, error) { return "world", nil })
 ```
 
 
@@ -330,7 +331,7 @@ cliLogger.Info("This is a cli log")
 The log framework itself has no any performance costs.
 
 There may be some performance costs below:
-1. Use format arguments or Key-Value pairs when firing a log. For example, `logger.Info("hello %s", "world")` will allocate the 16-byte memory once for the encoder `FmtTextEncoder` , `logger.Info("hello world", "key", "value")` will allocate the 32-byte memory once for the encoder `KvTextEncoder`.
+1. Use format arguments or Key-Value pairs when firing a log. For example, `logger.Info("hello %s", "world")` will allocate the 16-byte memory once for the encoder `FmtTextEncoder` , `logger.Info("hello world", "key", "value")` will allocate the 32-byte memory once for the encoder `KvTextEncoder`. For `NewFmtEncoder` and `NewTextJSONEncoder`, however, it will consume a little more memory because of `interface{}`.
 2. Encode the arguments to `io.Writer`. For `string` or `[]byte`, there is no any performance cost, but for other types, such as `int`, it maybe have once memory allocation.
 
 
