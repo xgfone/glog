@@ -9,7 +9,7 @@ See the [GoDoc](https://godoc.org/github.com/xgfone/logger).
 
 ## Prerequisite
 
-Now `logger` requires Go `1.x`.
+Now `logger` requires Go `1.7+`.
 
 
 ## Basic Principle

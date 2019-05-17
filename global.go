@@ -100,7 +100,14 @@ func WithEncoder(encoder Encoder) Logger {
 }
 
 // WithCtx returns a new logger with the contexts.
+//
+// WithCtx is equal to WithCxt, which is be reserved for backward compatibility.
 func WithCtx(ctxs ...interface{}) Logger {
+	return root.WithCxt(ctxs...)
+}
+
+// WithCxt returns a new logger with the contexts.
+func WithCxt(ctxs ...interface{}) Logger {
 	return root.WithCxt(ctxs...)
 }
 
