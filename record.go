@@ -40,6 +40,9 @@ type Record struct {
 	// Ctxs is the contexts of the Logger instance.
 	Ctxs []interface{}
 
+	// Data is used for the encoder or plugin to carry itself context data.
+	Data interface{}
+
 	caller stack.Call
 	okCall bool
 }
