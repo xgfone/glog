@@ -41,6 +41,12 @@ type FmtEncoderConfig struct {
 
 	// If true, the encoder won't append a newline.
 	NoNewLine bool
+
+	// The left delimiter of the context placeholder, which is "{" by default.
+	Left string
+
+	// The right delimiter of the context placeholder, which is "}" by default.
+	Right string
 }
 
 // NewFmtEncoder returns a text encoder based on the % formatter by the template,
@@ -58,14 +64,27 @@ func NewFmtEncoder(out Writer, conf ...FmtEncoderConfig) Encoder {
 		c = conf[0]
 	}
 
+	var defaultTmpl bool
 	if c.Tmpl = strings.TrimSpace(c.Tmpl); c.Tmpl == "" {
 		c.Tmpl = "{time} {ctx} {caller} [{level}]: {msg}"
+		defaultTmpl = true
 	}
 
 	if !c.NoNewLine {
 		if c.Tmpl[len(c.Tmpl)-1] != '\n' {
 			c.Tmpl += "\n"
 		}
+	}
+
+	if c.Left == "" {
+		c.Left = "{"
+	}
+	if c.Right == "" {
+		c.Right = "}"
+	}
+
+	if defaultTmpl && (c.Left != "{" || c.Right != "}") {
+		panic("must not use the default template when customizing left or right delimiters")
 	}
 
 	if c.Valuers == nil {
@@ -115,11 +134,12 @@ func NewFmtEncoder(out Writer, conf ...FmtEncoderConfig) Encoder {
 		}
 	}
 
+	formatTemplate := strings2.NewFormat(c.Left, c.Right).FormatOutput
 	return EncoderFunc(out, func(w Writer, r Record) (err error) {
-		r.Depth += 4
+		r.Depth += 3
 
 		buf := DefaultBufferPool.Get()
-		strings2.FmtStringOutput(buf, c.Tmpl, func(key string) (interface{}, bool) {
+		formatTemplate(buf, c.Tmpl, func(key string) (interface{}, bool) {
 			if f, ok := c.Valuers[key]; ok {
 				v, err := f(r)
 				if err != nil {
