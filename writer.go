@@ -22,7 +22,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/xgfone/logger/utils"
+	"github.com/xgfone/go-tools/function"
 )
 
 var fileFlag = os.O_CREATE | os.O_APPEND | os.O_WRONLY
@@ -361,7 +361,7 @@ func (f *sizedRotatingFile) doRollover() (err error) {
 			return nil
 		}
 
-		for _, i := range utils.Range(f.backupCount-1, 0, -1) {
+		for _, i := range function.Range(f.backupCount-1, 0, -1) {
 			sfn := fmt.Sprintf("%s.%d", f.filename, i)
 			dfn := fmt.Sprintf("%s.%d", f.filename, i+1)
 			if fileIsExist(sfn) {

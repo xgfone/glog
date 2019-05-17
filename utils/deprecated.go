@@ -1,4 +1,4 @@
-// Copyright 2018 xgfone
+// Copyright 2019 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package utils is deprecated, but is reserved for backward compatibility.
 package utils
 
 import (
 	"bytes"
 	"sync"
+
+	"github.com/xgfone/go-tools/function"
+	"github.com/xgfone/go-tools/json2"
+	"github.com/xgfone/go-tools/strings2"
 )
+
+// Re-export some functions for backward compatibility.
+var (
+	Range = function.Ranges
+
+	WriteString     = strings2.WriteString
+	SafeWriteString = strings2.SafeWriteString
+
+	ToBytes         = json2.ToBytes
+	ToString        = json2.ToString
+	ToBytesErr      = json2.ToBytesErr
+	ToStringErr     = json2.ToStringErr
+	EncodeTime      = json2.EncodeTime
+	EncodeNowTime   = json2.EncodeNowTime
+	MarshalJSON     = json2.MarshalJSON
+	MarshalKvJSON   = json2.MarshalKvJSON
+	WriteIntoBuffer = json2.Write
+)
+
+//////////////////////////////////////////////////////////////////////////////
 
 // Some default global pools.
 var (
@@ -26,14 +51,7 @@ var (
 )
 
 func init() {
-	initlen := 4
-
-	// for i := 0; i < initlen; i++ {
-	// 	bs := DefaultBytesPools.Get()
-	// 	defer DefaultBytesPools.Put(bs)
-	// }
-
-	for i := 0; i < initlen; i++ {
+	for i := 0; i < 4; i++ {
 		b := DefaultBufferPools.Get()
 		defer DefaultBufferPools.Put(b)
 	}

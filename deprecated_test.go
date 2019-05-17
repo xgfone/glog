@@ -1,4 +1,4 @@
-// Copyright 2018 xgfone
+// Copyright 2019 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,62 +14,34 @@
 
 package logger
 
-import (
-	"bytes"
-	"log"
-	"os"
-	"testing"
-)
-
-func TestStdLog(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
-	logger := New(FmtTextEncoder(buf))
-	stdlog := log.New(logger.GetEncoder().Writer(), "[stdlog] ", log.Lshortfile)
-	stdlog.Printf("hello, %s\n", "world")
-
-	if buf.String() != "[stdlog] example_test.go:28: hello, world\n" {
-		t.Error(buf.String())
-	}
-}
+import "os"
 
 func ExampleKvTextEncoder() {
 	conf := EncoderConfig{IsLevel: true}
 	encoder := KvTextEncoder(os.Stdout, conf)
-	log := New(encoder).WithCxt("name", "example", "id", 123)
+	log := New(encoder).WithCxt("name", "example", "id", 123, "caller", Caller())
 	log.Info("test", "key1", "value1", "key2", "value2")
 
 	// Output:
-	// lvl=INFO name=example id=123 key1=value1 key2=value2 msg=test
+	// lvl=INFO name=example id=123 caller=deprecated_test.go:23 key1=value1 key2=value2 msg=test
 }
 
 func ExampleKvStdJSONEncoder() {
 	conf := EncoderConfig{IsLevel: true}
 	encoder := KvStdJSONEncoder(os.Stdout, conf)
-	log := New(encoder).WithCxt("name", "example", "id", 123)
+	log := New(encoder).WithCxt("name", "example", "id", 123, "caller", Caller())
 	log.Info("test", "key1", "value1", "key2", "value2")
 
 	// Output:
-	// {"id":123,"key1":"value1","key2":"value2","lvl":"INFO","msg":"test","name":"example"}
+	// {"caller":"deprecated_test.go:33","id":123,"key1":"value1","key2":"value2","lvl":"INFO","msg":"test","name":"example"}
 }
 
 func ExampleFmtTextEncoder() {
 	conf := EncoderConfig{IsLevel: true}
 	encoder := FmtTextEncoder(os.Stdout, conf)
-	log := New(encoder).WithCxt("kv", "text", "example")
+	log := New(encoder).WithCxt("kv", "text", "example", Caller())
 	log.Info("test %s %s", "value1", "value2")
 
 	// Output:
-	// {kv}{text}{example} [INFO]: test value1 value2
-}
-
-func ExampleLevelFilterWriter() {
-	logger1 := New(FmtTextEncoder(os.Stdout))
-	logger1.Info("will output")
-
-	writer := LevelFilterWriter(LvlError, os.Stdout)
-	logger2 := New(FmtTextEncoder(writer))
-	logger2.Info("won't output")
-
-	// Output:
-	// will output
+	// {kv}{text}{example}{deprecated_test.go:43} [INFO]: test value1 value2
 }

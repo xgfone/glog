@@ -14,29 +14,12 @@
 
 package logger
 
-import (
-	"testing"
-
-	"github.com/xgfone/logger/utils"
-)
-
-func BenchmarkWriteIntoBuffer(b *testing.B) {
-	bufPools := utils.NewBufferPool()
-	bufPools.Put(bufPools.Get())
-
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			buf := bufPools.Get()
-			utils.WriteIntoBuffer(buf, 123)
-			bufPools.Put(buf)
-		}
-	})
-}
+import "testing"
 
 func BenchmarkLoggerNothingEncoderNoArgs(b *testing.B) {
 	logger := New(NothingEncoder())
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -48,6 +31,7 @@ func BenchmarkLoggerNothingEncoderNoArgs(b *testing.B) {
 func BenchmarkLoggerNothingEncoderOneArg(b *testing.B) {
 	logger := New(NothingEncoder())
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -59,6 +43,7 @@ func BenchmarkLoggerNothingEncoderOneArg(b *testing.B) {
 func BenchmarkLoggerNothingEncoderTwoArgs(b *testing.B) {
 	logger := New(NothingEncoder())
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -67,10 +52,10 @@ func BenchmarkLoggerNothingEncoderTwoArgs(b *testing.B) {
 	})
 }
 
-func BenchmarkLoggerKvTextEncoderNoArgs(b *testing.B) {
-	conf := EncoderConfig{IsLevel: true, IsTime: true}
-	logger := New(KvTextEncoder(DiscardWriter(), conf)).WithCxt("name", "bench")
+func BenchmarkLoggerNewTextJSONEncoderNoArgs(b *testing.B) {
+	logger := New(NewTextJSONEncoder(DiscardWriter())).WithCxt("name", "bench")
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -79,10 +64,10 @@ func BenchmarkLoggerKvTextEncoderNoArgs(b *testing.B) {
 	})
 }
 
-func BenchmarkLoggerKvTextEncoderArgs(b *testing.B) {
-	conf := EncoderConfig{IsLevel: true, IsTime: true}
-	logger := New(KvTextEncoder(DiscardWriter(), conf)).WithCxt("name", "bench")
+func BenchmarkLoggerNewTextJSONEncoderArgs(b *testing.B) {
+	logger := New(NewTextJSONEncoder(DiscardWriter())).WithCxt("name", "bench")
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -91,10 +76,11 @@ func BenchmarkLoggerKvTextEncoderArgs(b *testing.B) {
 	})
 }
 
-func BenchmarkLoggerFmtTextEncoderNoArgs(b *testing.B) {
-	conf := EncoderConfig{IsLevel: true, IsTime: true}
-	logger := New(FmtTextEncoder(DiscardWriter(), conf)).WithCxt("name", "bench")
+func BenchmarkLoggerNewFmtEncoderNoArgs(b *testing.B) {
+	conf := FmtEncoderConfig{Tmpl: "{time} {ctx} [{level}]: {msg}"}
+	logger := New(NewFmtEncoder(DiscardWriter(), conf)).WithCxt("name", "bench")
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -103,10 +89,11 @@ func BenchmarkLoggerFmtTextEncoderNoArgs(b *testing.B) {
 	})
 }
 
-func BenchmarkLoggerFmtTextEncoderArgs(b *testing.B) {
-	conf := EncoderConfig{IsLevel: true, IsTime: true}
-	logger := New(FmtTextEncoder(DiscardWriter(), conf)).WithCxt("name", "bench")
+func BenchmarkLoggerNewFmtEncoderArgs(b *testing.B) {
+	conf := FmtEncoderConfig{Tmpl: "{time} {ctx} [{level}]: {msg}"}
+	logger := New(NewFmtEncoder(DiscardWriter(), conf)).WithCxt("name", "bench")
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

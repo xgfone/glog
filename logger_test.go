@@ -14,31 +14,32 @@
 
 package logger
 
-import "fmt"
+import (
+	"bytes"
+	"log"
+	"os"
+	"testing"
+)
 
-// MultiError represents more than one error.
-type MultiError struct {
-	errs []error
-}
+func TestStdLog(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	logger := New(FmtTextEncoder(buf))
+	stdlog := log.New(logger.GetEncoder().Writer(), "[stdlog] ", log.Lshortfile)
+	stdlog.Printf("hello, %s\n", "world")
 
-func (m MultiError) Error() string {
-	switch len(m.errs) {
-	case 0:
-		return ""
-	case 1:
-		return m.errs[0].Error()
-	default:
-		s := m.errs[0].Error()
-		for _, e := range m.errs[1:] {
-			if e != nil {
-				s = fmt.Sprintf("%s > %s", s, e.Error())
-			}
-		}
-		return s
+	if buf.String() != "[stdlog] logger_test.go:28: hello, world\n" {
+		t.Error(buf.String())
 	}
 }
 
-// Errors returns a list of errors.
-func (m MultiError) Errors() []error {
-	return m.errs
+func ExampleLevelFilterWriter() {
+	logger1 := New(FmtTextEncoder(os.Stdout))
+	logger1.Info("will output")
+
+	writer := LevelFilterWriter(LvlError, os.Stdout)
+	logger2 := New(FmtTextEncoder(writer))
+	logger2.Info("won't output")
+
+	// Output:
+	// will output
 }

@@ -51,11 +51,17 @@ func (r *Record) getCaller() {
 	}
 }
 
-// Caller returns the caller "file:line", which is equal to
+// Caller is the same as LongCaller(), but using the short filename.
+func (r *Record) Caller() string {
+	r.getCaller()
+	return fmt.Sprintf("%v", r.caller)
+}
+
+// LongCaller returns the caller "file:line", which is equal to
 //     Caller(true)(r)
 // or
 //     r.LongFileName() + ":" + r.Line()
-func (r *Record) Caller() string {
+func (r *Record) LongCaller() string {
 	r.getCaller()
 	return fmt.Sprintf("%+v", r.caller)
 }
@@ -63,7 +69,8 @@ func (r *Record) Caller() string {
 // CallerStack returns the caller stack, which is equal to
 //     CallerStack(true)(r)
 func (r *Record) CallerStack() string {
-	s := stack.Trace().TrimBelow(stack.Caller(r.Depth + 1)).TrimRuntime()
+	r.getCaller()
+	s := stack.Trace().TrimBelow(r.caller).TrimRuntime()
 	if len(s) > 0 {
 		return fmt.Sprintf("%+v", s)
 	}
@@ -73,7 +80,7 @@ func (r *Record) CallerStack() string {
 // LongFileName returns the long filename where the caller is in.
 func (r *Record) LongFileName() string {
 	r.getCaller()
-	caller := r.Caller()
+	caller := r.LongCaller()
 	if index := strings.IndexByte(caller, ':'); index > -1 {
 		return caller[:index]
 	}

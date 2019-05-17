@@ -19,6 +19,8 @@ import (
 	"io"
 	"os"
 	"sync/atomic"
+
+	"github.com/xgfone/go-tools/pools"
 )
 
 // ErrPanic will be used when firing a PANIC level log.
@@ -26,6 +28,9 @@ var ErrPanic = fmt.Errorf("the panic level log")
 
 // DefaultLoggerDepth is the depth for the default implementing logger.
 const DefaultLoggerDepth = 2
+
+// DefaultBufferPool is the default global buffer pool.
+var DefaultBufferPool = pools.NewBufferPool()
 
 // LogGetter is an interface to return the inner information of Logger.
 type LogGetter interface {

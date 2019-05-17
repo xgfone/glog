@@ -23,7 +23,7 @@ import (
 func TestCaller(t *testing.T) {
 	if v, err := Caller(true)(Record{}); err != nil {
 		t.Error(err)
-	} else if v.(string) != "github.com/xgfone/logger/value_test.go:24" {
+	} else if v.(string) != "github.com/xgfone/logger/valuer_test.go:24" {
 		t.Error(v)
 	}
 }
@@ -33,18 +33,18 @@ func ExampleCaller() {
 	logger.Info("msg", "caller2", Caller())
 
 	// Output:
-	// caller1=value_test.go:33 caller2=value_test.go:33 msg=msg
+	// caller1=valuer_test.go:33 caller2=valuer_test.go:33 msg=msg
 }
 
 func ExampleCallerStack() {
 	if v, err := CallerStack(true)(Record{}); err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(v.(string)[1:42])
+		fmt.Println(v.(string)[1:43])
 		// v is like
-		// [github.com/xgfone/logger/value_test.go:40 testing/example.go:121 testing/example.go:45 testing/testing.go:1073 _testmain.go:80]
+		// [github.com/xgfone/logger/valuer_test.go:40 testing/example.go:121 testing/example.go:45 testing/testing.go:1073 _testmain.go:80]
 	}
 
 	// Output:
-	// github.com/xgfone/logger/value_test.go:40
+	// github.com/xgfone/logger/valuer_test.go:40
 }

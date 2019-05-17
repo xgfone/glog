@@ -16,8 +16,8 @@ package logger
 
 import "fmt"
 
-func ExampleRecord_Caller() {
-	caller := new(Record).Caller()
+func ExampleRecord_LongCaller() {
+	caller := new(Record).LongCaller()
 	fmt.Println(caller)
 
 	// Output:
@@ -80,4 +80,12 @@ func ExampleRecord_Package() {
 
 	// Output:
 	// github.com/xgfone/logger
+}
+
+func ExampleRecord_Caller() {
+	caller := new(Record).Caller()
+	fmt.Println(caller)
+
+	// Output:
+	// record_test.go:86
 }

@@ -16,9 +16,32 @@ package logger
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-stack/stack"
 )
+
+// Predefine some valuers.
+var (
+	CallerStackValuer = CallerStack()
+)
+
+// Valuers is used to store the context values of the format template.
+var Valuers = map[string]Valuer{
+	"name":          func(r Record) (interface{}, error) { return r.Name, nil },
+	"level":         func(r Record) (interface{}, error) { return r.Lvl.String(), nil },
+	"short_level":   func(r Record) (interface{}, error) { return r.Lvl.ShortString(), nil },
+	"time":          func(r Record) (interface{}, error) { return time.Now().Format(time.RFC3339Nano), nil },
+	"utctime":       func(r Record) (interface{}, error) { return time.Now().UTC().Format(time.RFC3339Nano), nil },
+	"line":          func(r Record) (interface{}, error) { r.Depth++; return r.Line(), nil },
+	"lineno":        func(r Record) (interface{}, error) { r.Depth++; return r.LineAsInt(), nil },
+	"funcname":      func(r Record) (interface{}, error) { r.Depth++; return r.FuncName(), nil },
+	"filename":      func(r Record) (interface{}, error) { r.Depth++; return r.FileName(), nil },
+	"long_filename": func(r Record) (interface{}, error) { r.Depth++; return r.LongFileName(), nil },
+	"package":       func(r Record) (interface{}, error) { r.Depth++; return r.Package(), nil },
+	"caller":        func(r Record) (interface{}, error) { r.Depth++; return r.Caller(), nil },
+	"long_caller":   func(r Record) (interface{}, error) { r.Depth++; return r.LongCaller(), nil },
+}
 
 // A Valuer generates a log value, which represents a dynamic value
 // that is re-evaluated with each log event before firing it.
@@ -27,7 +50,11 @@ type Valuer func(Record) (interface{}, error)
 // MayBeValuer calls it and returns the result if v is Valuer.
 // Or returns v without change.
 func MayBeValuer(record Record, v interface{}) (interface{}, error) {
-	if f, ok := v.(Valuer); ok {
+	switch f := v.(type) {
+	case Valuer:
+		record.Depth++
+		return f(record)
+	case func(Record) (interface{}, error):
 		record.Depth++
 		return f(record)
 	}
