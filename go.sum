@@ -1,6 +1,4 @@
 github.com/go-stack/stack v1.8.0 h1:5SgMzNM5HxrEjV0ww2lTmX6E2Izsfxas4+YHWRs3Lsk=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
-github.com/pkg/profile v1.3.0 h1:OQIvuDgm00gWVWGTf4m4mCt6W1/0YqU7Ntg0mySWgaI=
-github.com/pkg/profile v1.3.0/go.mod h1:hJw3o1OdXxsrSjjVksARp5W95eeEaEfptyVZyv6JUPA=
-github.com/xgfone/go-tools v5.7.0+incompatible h1:jULqjCRYSXhe6WZ2aEJH9oqyGgpha1HOuJEEf5sO6Z0=
-github.com/xgfone/go-tools v5.7.0+incompatible/go.mod h1:roYE5IOcMmFQOxxu63P4DZQWTUwcdCwvIDDTLR6kH34=
+github.com/xgfone/go-tools v5.8.0+incompatible h1:2CaJPHRPdvXKfcWDfe8RwhoHlSRenVblU3Ga50TXckk=
+github.com/xgfone/go-tools v5.8.0+incompatible/go.mod h1:roYE5IOcMmFQOxxu63P4DZQWTUwcdCwvIDDTLR6kH34=
