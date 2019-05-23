@@ -4,6 +4,8 @@ Package `logger` provides an flexible, extensible and powerful logging managemen
 
 See the [GoDoc](https://godoc.org/github.com/xgfone/logger).
 
+Also see another simpler and more powerful logger [`klog`](https://github.com/xgfone/klog).
+
 **API has been stable.** The current is `v4`.
 
 
